@@ -16,6 +16,7 @@ class ScribeService: NSObject {
     private var apiKey: String?
     private var languageCode: String?
     private var isConnected = false
+    private var isDisconnecting = false  // Track intentional disconnect
     
     // Configuration
     private let modelId = "scribe_v2_realtime"
@@ -28,19 +29,41 @@ class ScribeService: NSObject {
     
     // MARK: - Connection Management
     
+    /// VAD Configuration
+    struct VADConfig {
+        var enabled: Bool = false
+        var silenceThresholdSecs: Double = 2.0     // Wait 2 seconds of silence before commit
+        var vadThreshold: Double = 0.35             // Lower = more sensitive (0.1-0.9)
+        var minSpeechDurationMs: Int = 100
+        var minSilenceDurationMs: Int = 100
+    }
+    
     /// Connect to Scribe v2 WebSocket API
-    func connect(apiKey: String, languageCode: String? = nil) {
+    func connect(apiKey: String, languageCode: String? = nil, vadConfig: VADConfig = VADConfig()) {
         self.apiKey = apiKey
         self.languageCode = languageCode
+        self.isDisconnecting = false
         
         // Build WebSocket URL with query parameters
         var urlComponents = URLComponents(string: "wss://api.elevenlabs.io/v1/speech-to-text/realtime")!
         var queryItems = [
             URLQueryItem(name: "model_id", value: modelId),
             URLQueryItem(name: "audio_format", value: "pcm_16000"),
-            URLQueryItem(name: "commit_strategy", value: "manual"),  // We'll commit on stop
             URLQueryItem(name: "include_timestamps", value: "false")
         ]
+        
+        // Set commit strategy based on VAD config
+        if vadConfig.enabled {
+            queryItems.append(URLQueryItem(name: "commit_strategy", value: "vad"))
+            queryItems.append(URLQueryItem(name: "vad_silence_threshold_secs", value: String(vadConfig.silenceThresholdSecs)))
+            queryItems.append(URLQueryItem(name: "vad_threshold", value: String(vadConfig.vadThreshold)))
+            queryItems.append(URLQueryItem(name: "min_speech_duration_ms", value: String(vadConfig.minSpeechDurationMs)))
+            queryItems.append(URLQueryItem(name: "min_silence_duration_ms", value: String(vadConfig.minSilenceDurationMs)))
+            print("🎙️ Using VAD mode (silence: \(vadConfig.silenceThresholdSecs)s, threshold: \(vadConfig.vadThreshold))")
+        } else {
+            queryItems.append(URLQueryItem(name: "commit_strategy", value: "manual"))
+            print("🎙️ Using manual commit mode")
+        }
         
         if let languageCode = languageCode, !languageCode.isEmpty {
             queryItems.append(URLQueryItem(name: "language_code", value: languageCode))
@@ -72,6 +95,7 @@ class ScribeService: NSObject {
     
     /// Disconnect from WebSocket
     func disconnect() {
+        isDisconnecting = true  // Mark as intentional disconnect
         webSocket?.cancel(with: .normalClosure, reason: nil)
         webSocket = nil
         urlSession = nil
@@ -83,8 +107,8 @@ class ScribeService: NSObject {
     
     /// Send audio chunk to Scribe
     func sendAudio(_ audioData: Data) {
-        guard isConnected else {
-            print("⚠️ Cannot send audio - not connected")
+        // Silently ignore if disconnected or disconnecting
+        guard isConnected && !isDisconnecting else {
             return
         }
         
@@ -135,15 +159,20 @@ class ScribeService: NSObject {
     
     private func receiveMessage() {
         webSocket?.receive { [weak self] result in
+            guard let self = self else { return }
+            
             switch result {
             case .success(let message):
-                self?.handleMessage(message)
+                self.handleMessage(message)
                 // Continue receiving
-                self?.receiveMessage()
+                self.receiveMessage()
                 
             case .failure(let error):
-                print("❌ WebSocket receive error: \(error.localizedDescription)")
-                self?.onError?(error)
+                // Only report error if not intentionally disconnecting
+                if !self.isDisconnecting {
+                    print("❌ WebSocket receive error: \(error.localizedDescription)")
+                    self.onError?(error)
+                }
             }
         }
     }

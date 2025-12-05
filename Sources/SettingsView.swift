@@ -65,9 +65,35 @@ struct SettingsView: View {
                         UserDefaults.standard.set(newValue, forKey: "waitForSilence")
                     }
                 
-                Text("Or press ⌥K again to stop manually")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if waitForSilence {
+                    HStack {
+                        Text("Silence duration:")
+                        Spacer()
+                        Picker("", selection: Binding(
+                            get: { 
+                                let val = UserDefaults.standard.double(forKey: "silenceDuration")
+                                return val >= 1.0 ? val : 1.0  // Default to 1s if not set or too low
+                            },
+                            set: { UserDefaults.standard.set($0, forKey: "silenceDuration") }
+                        )) {
+                            Text("1s").tag(1.0)
+                            Text("1.5s").tag(1.5)
+                            Text("2s").tag(2.0)
+                            Text("2.5s").tag(2.5)
+                            Text("3s").tag(3.0)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 220)
+                    }
+                    
+                    Text("Wait this long after you stop speaking before auto-commit")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("Press ⌥K again to stop manually")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Section("Shortcuts") {

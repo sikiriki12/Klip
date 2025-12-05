@@ -17,6 +17,13 @@ class TranscriptionCoordinator: ObservableObject {
     
     // MARK: - Settings
     var languageCode: String? = nil  // nil = auto-detect
+    var waitForSilence: Bool {
+        get { UserDefaults.standard.bool(forKey: "waitForSilence") }
+        set { UserDefaults.standard.set(newValue, forKey: "waitForSilence") }
+    }
+    
+    // VAD is enabled when waitForSilence is true
+    private var useVAD: Bool { waitForSilence }
     
     private init() {
         setupAudioRecorder()
@@ -51,8 +58,17 @@ class TranscriptionCoordinator: ObservableObject {
         lastTranscript = ""
         errorMessage = nil
         
-        // Connect to Scribe
-        scribeService.connect(apiKey: apiKey, languageCode: languageCode)
+        // Configure VAD
+        var vadConfig = ScribeService.VADConfig()
+        vadConfig.enabled = useVAD
+        
+        // Read silence duration from settings (minimum: 1 second)
+        let silenceDuration = UserDefaults.standard.double(forKey: "silenceDuration")
+        vadConfig.silenceThresholdSecs = max(silenceDuration, 1.0)  // At least 1 second
+        vadConfig.vadThreshold = 0.35  // More forgiving of background noise
+        
+        // Connect to Scribe with VAD config
+        scribeService.connect(apiKey: apiKey, languageCode: languageCode, vadConfig: vadConfig)
         
         // Play start sound
         SoundPlayer.shared.playStartSound()
@@ -104,8 +120,12 @@ class TranscriptionCoordinator: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 
+                // Stop audio recorder first (important for VAD mode)
+                self.audioRecorder.stopRecording()
+                
                 self.lastTranscript = text
                 self.isRecording = false
+                self.errorMessage = nil  // Clear any previous errors
                 
                 // Copy to clipboard
                 if !text.isEmpty {

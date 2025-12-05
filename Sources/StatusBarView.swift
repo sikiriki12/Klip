@@ -4,6 +4,7 @@ import AppKit
 struct StatusBarView: View {
     @ObservedObject private var coordinator = TranscriptionCoordinator.shared
     @State private var currentMode = "Raw"  // Will be dynamic in Phase 2
+    @State private var showCopiedFeedback = false
     
     var body: some View {
         VStack(spacing: 12) {
@@ -15,14 +16,14 @@ struct StatusBarView: View {
                 Text("Klip")
                     .font(.headline)
                 Spacer()
-                Text("v0.2")
+                Text("v0.3")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             
             Divider()
             
-            // Recording status
+            // Recording status with Start/Stop button
             HStack {
                 Circle()
                     .fill(coordinator.isRecording ? Color.red : Color.gray)
@@ -54,12 +55,30 @@ struct StatusBarView: View {
                     .cornerRadius(6)
             }
             
-            // Last transcript
+            // Last transcript with copy button
             if !coordinator.lastTranscript.isEmpty && !coordinator.isRecording {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Last transcription:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack {
+                        Text("Last transcription:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button(action: {
+                            ClipboardManager.shared.copyToClipboard(coordinator.lastTranscript)
+                            showCopiedFeedback = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                showCopiedFeedback = false
+                            }
+                        }) {
+                            HStack(spacing: 2) {
+                                Image(systemName: showCopiedFeedback ? "checkmark" : "doc.on.doc")
+                                Text(showCopiedFeedback ? "Copied!" : "Copy")
+                            }
+                            .font(.caption2)
+                            .foregroundColor(showCopiedFeedback ? .green : .blue)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     Text(coordinator.lastTranscript)
                         .font(.caption)
                         .lineLimit(3)
@@ -69,18 +88,6 @@ struct StatusBarView: View {
                 .padding(.horizontal, 8)
                 .background(Color.green.opacity(0.1))
                 .cornerRadius(6)
-            }
-            
-            // Error message
-            if let error = coordinator.errorMessage {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-                .padding(.vertical, 4)
             }
             
             // Current mode
@@ -93,18 +100,51 @@ struct StatusBarView: View {
             }
             .font(.subheadline)
             
-            // Shortcut hint
+            // Shortcut hint + Start/Stop button
             HStack {
-                Text("⌥K")
-                    .font(.system(.caption, design: .monospaced))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(4)
-                Text(coordinator.isRecording ? "to stop" : "to start recording")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text("⌥K")
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(4)
+                        
+                        if coordinator.isRecording {
+                            if UserDefaults.standard.bool(forKey: "waitForSilence") {
+                                Text("auto-stops on silence")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("to stop")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            Text("to start")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
                 Spacer()
+                
+                // Start/Stop Recording button
+                Button(action: {
+                    coordinator.toggleRecording()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: coordinator.isRecording ? "stop.fill" : "mic.fill")
+                        Text(coordinator.isRecording ? "Stop" : "Start")
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(coordinator.isRecording ? .red : .blue)
             }
             
             Divider()

@@ -38,7 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Observe recording state changes
         setupRecordingObserver()
         
-        print("✅ Klip v0.2 is running! Press ⌥K (Option+K) to start recording.")
+        print("✅ Klip v0.3 is running! Press ⌥K (Option+K) to start recording.")
         print("💡 Make sure to add your ElevenLabs API key in Settings first.")
     }
     
