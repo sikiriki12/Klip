@@ -117,25 +117,52 @@ class TranscriptionCoordinator: ObservableObject {
         }
         
         scribeService.onCommittedTranscript = { [weak self] text in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                
-                // Stop audio recorder first (important for VAD mode)
-                self.audioRecorder.stopRecording()
-                
-                self.lastTranscript = text
-                self.isRecording = false
-                self.errorMessage = nil  // Clear any previous errors
-                
-                // Copy to clipboard
-                if !text.isEmpty {
-                    ClipboardManager.shared.copyToClipboard(text)
-                    SoundPlayer.shared.playCompletionSound()
-                    print("✅ Transcription complete!")
+            guard let self = self else { return }
+            
+            // Stop audio recorder first (important for VAD mode)
+            self.audioRecorder.stopRecording()
+            
+            // Process through current mode
+            Task {
+                do {
+                    let processedText: String
+                    
+                    // If mode is Raw or text is empty, skip processing
+                    if text.isEmpty {
+                        processedText = text
+                    } else if ModeManager.shared.currentMode.id == "raw" {
+                        processedText = text
+                        print("📝 Raw mode - no processing")
+                    } else {
+                        print("🔄 Processing with mode: \(ModeManager.shared.currentMode.name)")
+                        processedText = try await ModeManager.shared.processText(text)
+                    }
+                    
+                    await MainActor.run {
+                        self.lastTranscript = processedText
+                        self.isRecording = false
+                        self.errorMessage = nil
+                        
+                        // Copy to clipboard
+                        if !processedText.isEmpty {
+                            ClipboardManager.shared.copyToClipboard(processedText)
+                            SoundPlayer.shared.playCompletionSound()
+                            print("✅ Done!")
+                        }
+                        
+                        // Disconnect
+                        self.scribeService.disconnect()
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.lastTranscript = text  // Fall back to raw text
+                        self.errorMessage = error.localizedDescription
+                        self.isRecording = false
+                        ClipboardManager.shared.copyToClipboard(text)
+                        SoundPlayer.shared.playErrorSound()
+                        self.scribeService.disconnect()
+                    }
                 }
-                
-                // Disconnect
-                self.scribeService.disconnect()
             }
         }
         

@@ -3,7 +3,7 @@ import AppKit
 
 struct StatusBarView: View {
     @ObservedObject private var coordinator = TranscriptionCoordinator.shared
-    @State private var currentMode = "Raw"  // Will be dynamic in Phase 2
+    @ObservedObject private var modeManager = ModeManager.shared
     @State private var showCopiedFeedback = false
     
     var body: some View {
@@ -90,12 +90,22 @@ struct StatusBarView: View {
                 .cornerRadius(6)
             }
             
-            // Current mode
+            // Current mode selector
             HStack {
                 Text("Mode:")
                     .foregroundColor(.secondary)
-                Text(currentMode)
-                    .fontWeight(.medium)
+                
+                Picker("", selection: Binding(
+                    get: { modeManager.currentModeIndex },
+                    set: { modeManager.selectMode(modeManager.modes[$0]) }
+                )) {
+                    ForEach(0..<modeManager.modes.count, id: \.self) { index in
+                        Text(modeManager.modes[index].name).tag(index)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 150)
+                
                 Spacer()
             }
             .font(.subheadline)
