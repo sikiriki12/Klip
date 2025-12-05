@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct StatusBarView: View {
     @ObservedObject private var coordinator = TranscriptionCoordinator.shared
@@ -14,7 +15,7 @@ struct StatusBarView: View {
                 Text("Klip")
                     .font(.headline)
                 Spacer()
-                Text("v0.1")
+                Text("v0.2")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -111,7 +112,7 @@ struct StatusBarView: View {
             // Buttons
             HStack {
                 Button("Settings...") {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                    AppDelegate.shared?.openSettings()
                 }
                 .buttonStyle(.bordered)
                 
