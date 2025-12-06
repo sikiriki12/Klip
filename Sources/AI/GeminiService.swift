@@ -12,8 +12,9 @@ class GeminiService {
     /// - Parameters:
     ///   - prompt: The user prompt
     ///   - systemInstruction: System instruction for the model
+    ///   - imageData: Optional JPEG image data to include
     /// - Returns: Generated text response
-    func generate(prompt: String, systemInstruction: String) async throws -> String {
+    func generate(prompt: String, systemInstruction: String, imageData: Data? = nil) async throws -> String {
         guard let apiKey = KeychainManager.shared.getGeminiKey(), !apiKey.isEmpty else {
             throw GeminiError.noAPIKey
         }
@@ -24,14 +25,28 @@ class GeminiService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        // Build parts array
+        var parts: [[String: Any]] = []
+        
+        // Add image if provided
+        if let imageData = imageData {
+            let base64Image = imageData.base64EncodedString()
+            parts.append([
+                "inlineData": [
+                    "mimeType": "image/jpeg",
+                    "data": base64Image
+                ]
+            ])
+            print("📷 Including image in request (\(imageData.count / 1024)KB)")
+        }
+        
+        // Add text prompt
+        parts.append(["text": prompt])
+        
         // Build request body
         let requestBody: [String: Any] = [
             "contents": [
-                [
-                    "parts": [
-                        ["text": prompt]
-                    ]
-                ]
+                ["parts": parts]
             ],
             "systemInstruction": [
                 "parts": [

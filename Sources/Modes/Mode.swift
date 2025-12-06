@@ -19,9 +19,13 @@ protocol TranscriptionMode {
     
     /// Whether this mode uses clipboard context (when available)
     var usesClipboardContext: Bool { get }
+    
+    /// Whether this mode uses screenshot context (when available)
+    var usesScreenshotContext: Bool { get }
 }
 
 // Default implementation - most modes don't use context
 extension TranscriptionMode {
     var usesClipboardContext: Bool { false }
+    var usesScreenshotContext: Bool { false }
 }

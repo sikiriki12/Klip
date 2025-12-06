@@ -62,11 +62,16 @@ struct SettingsView: View {
                             Text(mode.name)
                                 .fontWeight(.medium)
                             
-                            // Context indicator
+                            // Context indicators
                             if mode.usesClipboardContext {
                                 Text("📋")
                                     .font(.caption)
                                     .help("Uses clipboard context")
+                            }
+                            if mode.usesScreenshotContext {
+                                Text("📷")
+                                    .font(.caption)
+                                    .help("Uses screenshot context")
                             }
                             
                             if let position = modeManager.visibleModeIds.firstIndex(of: mode.id) {
@@ -107,6 +112,11 @@ struct SettingsView: View {
                                         .font(.caption2)
                                         .foregroundColor(.blue)
                                 }
+                                if mode.usesScreenshotContext {
+                                    Text("📷 Uses screenshot context when enabled")
+                                        .font(.caption2)
+                                        .foregroundColor(.blue)
+                                }
                             }
                             .padding(8)
                             .background(Color.gray.opacity(0.1))
@@ -116,34 +126,62 @@ struct SettingsView: View {
                     .padding(.vertical, 2)
                 }
                 
-                Text("Check modes to show in quick bar. Max 5. 📋 = uses context")
+                Text("Max 5 modes. 📋 = clipboard, 📷 = screenshot")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             
             Section("Context") {
+                // Clipboard context
                 Toggle("Enable clipboard context", isOn: Binding(
                     get: { ClipboardMonitor.shared.isEnabled },
                     set: { ClipboardMonitor.shared.isEnabled = $0 }
                 ))
                 
-                Text("When enabled, modes marked with 📋 will use recently copied text (<1 min) as context")
+                Text("Modes marked 📋 use recently copied text (<1 min)")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                if ClipboardMonitor.shared.isEnabled {
-                    HStack {
-                        Text("Status:")
-                            .foregroundColor(.secondary)
-                        if ClipboardMonitor.shared.hasFreshContext {
-                            Text("✅ Fresh context available")
-                                .foregroundColor(.green)
-                        } else {
-                            Text("No fresh context")
-                                .foregroundColor(.secondary)
+                Divider()
+                
+                // Screenshot context
+                Toggle("Enable screenshot context", isOn: Binding(
+                    get: { ScreenshotService.shared.isEnabled },
+                    set: { ScreenshotService.shared.isEnabled = $0 }
+                ))
+                
+                if ScreenshotService.shared.isEnabled {
+                    Picker("Capture", selection: Binding(
+                        get: { ScreenshotService.shared.captureMode },
+                        set: { ScreenshotService.shared.captureMode = $0 }
+                    )) {
+                        ForEach(ScreenshotService.CaptureMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
                         }
                     }
+                    .pickerStyle(.segmented)
+                }
+                
+                Text("Modes marked 📷 capture screen when recording starts")
                     .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if ScreenshotService.shared.isEnabled {
+                    Button(action: {
+                        // Open Screen Recording preferences
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Text("⚠️ Requires Screen Recording permission")
+                            Image(systemName: "arrow.up.forward.square")
+                                .font(.caption2)
+                        }
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             
@@ -225,7 +263,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 650)
+        .frame(width: 480, height: 720)
         .onAppear {
             loadSettings()
         }

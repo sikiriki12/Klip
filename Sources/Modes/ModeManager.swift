@@ -132,6 +132,12 @@ class ModeManager: ObservableObject {
             """
         }
         
+        // Capture screenshot if mode uses it and it's enabled
+        var screenshotData: Data? = nil
+        if currentMode.usesScreenshotContext && ScreenshotService.shared.isEnabled {
+            screenshotData = ScreenshotService.shared.capture()
+        }
+        
         // Build system instruction
         var systemInstruction = ""
         
@@ -139,14 +145,25 @@ class ModeManager: ObservableObject {
         if currentMode.id != "raw" {
             systemInstruction = currentMode.systemPrompt
             
-            // Add context assessment instruction if mode uses context
+            // Add context assessment instructions
+            var contextNotes: [String] = []
+            
             if currentMode.usesClipboardContext {
+                contextNotes.append("clipboard text (if provided)")
+            }
+            
+            if currentMode.usesScreenshotContext && screenshotData != nil {
+                contextNotes.append("screenshot of the active window")
+            }
+            
+            if !contextNotes.isEmpty {
                 systemInstruction += """
                 
                 
-                Note: If clipboard context is provided, first assess if it's relevant to the user's speech.
-                If relevant (e.g., it's an email they're replying to), use it to inform your response.
-                If not relevant, ignore the clipboard context and focus only on the speech.
+                Note: You may receive additional context: \(contextNotes.joined(separator: " and/or ")).
+                First assess if this context is relevant to the user's speech.
+                If relevant (e.g., screenshot shows an email they're replying to, or clipboard contains text they're referencing), use it to inform your response.
+                If not relevant, ignore the context and focus only on the user's speech.
                 """
             }
             
@@ -178,7 +195,8 @@ class ModeManager: ObservableObject {
         
         let result = try await GeminiService.shared.generate(
             prompt: userPrompt,
-            systemInstruction: systemInstruction
+            systemInstruction: systemInstruction,
+            imageData: screenshotData
         )
         
         if translateEnabled {

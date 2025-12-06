@@ -6,7 +6,8 @@ struct EmailMode: TranscriptionMode {
     let name = "Email"
     let description = "Format as professional email"
     let shortcutNumber = 4
-    let usesClipboardContext = true  // Can use clipboard for context (replying)
+    let usesClipboardContext = true   // Can use clipboard for context
+    let usesScreenshotContext = true  // Can use screenshot for context
     
     let systemPrompt = """
     Convert the following speech into a professional email.
