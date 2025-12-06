@@ -90,25 +90,16 @@ struct StatusBarView: View {
                 .cornerRadius(6)
             }
             
-            // Current mode selector
-            HStack {
-                Text("Mode:")
-                    .foregroundColor(.secondary)
-                
-                Picker("", selection: Binding(
-                    get: { modeManager.currentModeIndex },
-                    set: { modeManager.selectMode(modeManager.modes[$0]) }
-                )) {
-                    ForEach(0..<modeManager.modes.count, id: \.self) { index in
-                        Text(modeManager.modes[index].name).tag(index)
-                    }
+            // Mode selector (quick bar)
+            Picker("", selection: Binding(
+                get: { modeManager.currentModeIndex },
+                set: { modeManager.selectMode(modeManager.modes[$0]) }
+            )) {
+                ForEach(0..<modeManager.modes.count, id: \.self) { index in
+                    Text(modeManager.modes[index].name).tag(index)
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 150)
-                
-                Spacer()
             }
-            .font(.subheadline)
+            .pickerStyle(.segmented)
             
             // Translation toggle
             HStack {

@@ -5,8 +5,8 @@ import Combine
 class ModeManager: ObservableObject {
     static let shared = ModeManager()
     
-    /// All available modes
-    let modes: [any TranscriptionMode] = [
+    /// All available modes (master list)
+    let allModes: [any TranscriptionMode] = [
         RawMode(),
         FixMode(),
         BulletMode(),
@@ -14,11 +14,31 @@ class ModeManager: ObservableObject {
         SummarizeMode()
     ]
     
+    /// IDs of modes visible in quick bar (ordered), max 5
+    @Published var visibleModeIds: [String] {
+        didSet {
+            UserDefaults.standard.set(visibleModeIds, forKey: "visibleModeIds")
+            objectWillChange.send()
+        }
+    }
+    
+    /// Modes visible in quick bar (computed from visibleModeIds)
+    var modes: [any TranscriptionMode] {
+        visibleModeIds.compactMap { id in allModes.first { $0.id == id } }
+    }
+    
     /// Currently selected mode
     @Published var currentMode: any TranscriptionMode
     
-    /// Current mode index for display
-    @Published var currentModeIndex: Int = 0
+    /// Current mode index for display (within visible modes)
+    var currentModeIndex: Int {
+        get { modes.firstIndex { $0.id == currentMode.id } ?? 0 }
+        set { 
+            if newValue < modes.count {
+                selectMode(modes[newValue])
+            }
+        }
+    }
     
     /// Translation toggle - when ON, output is translated to target language
     @Published var translateEnabled: Bool {
@@ -33,36 +53,67 @@ class ModeManager: ObservableObject {
     }
     
     private init() {
-        // Load saved mode or default to Raw
+        // Load visible mode IDs or use defaults
+        if let savedIds = UserDefaults.standard.array(forKey: "visibleModeIds") as? [String] {
+            visibleModeIds = savedIds
+        } else {
+            visibleModeIds = ["raw", "fix", "bullet", "email", "summarize"]
+        }
+        
+        // Load saved mode or default to first visible
         let savedModeId = UserDefaults.standard.string(forKey: "currentModeId") ?? "raw"
-        currentMode = modes.first { $0.id == savedModeId } ?? modes[0]
-        currentModeIndex = modes.firstIndex { $0.id == savedModeId } ?? 0
+        currentMode = allModes.first { $0.id == savedModeId } ?? allModes[0]
         
         // Load translation toggle state
         translateEnabled = UserDefaults.standard.bool(forKey: "translateEnabled")
     }
     
-    /// Select a mode by shortcut number
+    /// Select a mode by shortcut number (1-5)
     func selectMode(byShortcut number: Int) {
-        guard let mode = modes.first(where: { $0.shortcutNumber == number }) else {
-            print("⚠️ No mode with shortcut \(number)")
+        let index = number - 1
+        guard index >= 0 && index < modes.count else {
+            print("⚠️ No mode at position \(number)")
             return
         }
-        selectMode(mode)
+        selectMode(modes[index])
     }
     
     /// Select a specific mode
     func selectMode(_ mode: any TranscriptionMode) {
         currentMode = mode
-        currentModeIndex = modes.firstIndex { $0.id == mode.id } ?? 0
         UserDefaults.standard.set(mode.id, forKey: "currentModeId")
         print("🔄 Mode changed to: \(mode.name)")
+        objectWillChange.send()
+    }
+    
+    /// Move a mode in the visible list
+    func moveMode(from source: Int, to destination: Int) {
+        guard source < visibleModeIds.count && destination <= visibleModeIds.count else { return }
+        let id = visibleModeIds.remove(at: source)
+        visibleModeIds.insert(id, at: destination > source ? destination - 1 : destination)
+    }
+    
+    /// Toggle mode visibility
+    func toggleModeVisibility(_ modeId: String) {
+        if visibleModeIds.contains(modeId) {
+            // Can't remove if it's the last one
+            guard visibleModeIds.count > 1 else { return }
+            visibleModeIds.removeAll { $0 == modeId }
+        } else if visibleModeIds.count < 5 {
+            visibleModeIds.append(modeId)
+        }
+    }
+    
+    /// Check if mode is visible
+    func isModeVisible(_ modeId: String) -> Bool {
+        visibleModeIds.contains(modeId)
     }
     
     /// Process text through current mode, optionally with translation
     func processText(_ text: String, context: String? = nil) async throws -> String {
         // If mode is Raw and translate is OFF, return as-is
         if currentMode.id == "raw" && !translateEnabled {
+            print("📝 Raw mode - no processing")
             return text
         }
         
@@ -72,6 +123,7 @@ class ModeManager: ObservableObject {
         // Add mode-specific instructions (unless Raw)
         if currentMode.id != "raw" {
             systemInstruction = currentMode.systemPrompt
+            print("🔄 Processing with mode: \(currentMode.name)")
         }
         
         // Append translation instruction if enabled
@@ -111,6 +163,6 @@ class ModeManager: ObservableObject {
     
     /// Get mode by ID
     func mode(withId id: String) -> (any TranscriptionMode)? {
-        return modes.first { $0.id == id }
+        return allModes.first { $0.id == id }
     }
 }

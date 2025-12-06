@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var targetLanguage = "English"
     @State private var waitForSilence = true
     @State private var showSaveConfirmation = false
+    @State private var expandedModeId: String? = nil
+    @ObservedObject private var modeManager = ModeManager.shared
     
     let languages = ["Auto-detect", "Croatian", "English", "German", "Spanish", "French", "Italian", "Portuguese", "Dutch", "Polish", "Russian", "Japanese", "Chinese", "Korean"]
     
@@ -37,6 +39,71 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundColor(.green)
                 }
+            }
+            
+            Section("Modes") {
+                Text("Quick bar modes (⌘1-5):")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                ForEach(modeManager.allModes, id: \.id) { mode in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            // Visibility checkbox
+                            Button(action: {
+                                modeManager.toggleModeVisibility(mode.id)
+                            }) {
+                                Image(systemName: modeManager.isModeVisible(mode.id) ? "checkmark.square.fill" : "square")
+                                    .foregroundColor(modeManager.isModeVisible(mode.id) ? .blue : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Mode name and position
+                            Text(mode.name)
+                                .fontWeight(.medium)
+                            
+                            if let position = modeManager.visibleModeIds.firstIndex(of: mode.id) {
+                                Text("⌘\(position + 1)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 2)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(3)
+                            }
+                            
+                            Spacer()
+                            
+                            // Expand to show prompt
+                            Button(action: {
+                                if expandedModeId == mode.id {
+                                    expandedModeId = nil
+                                } else {
+                                    expandedModeId = mode.id
+                                }
+                            }) {
+                                Image(systemName: expandedModeId == mode.id ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        
+                        // Show prompt when expanded
+                        if expandedModeId == mode.id {
+                            Text(mode.systemPrompt.isEmpty ? "(No prompt - passthrough)" : mode.systemPrompt)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(8)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                
+                Text("Check modes to show in quick bar. Max 5.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             
             Section("Transcription") {
@@ -72,7 +139,7 @@ struct SettingsView: View {
                         Picker("", selection: Binding(
                             get: { 
                                 let val = UserDefaults.standard.double(forKey: "silenceDuration")
-                                return val >= 1.0 ? val : 1.0  // Default to 1s if not set or too low
+                                return val >= 1.0 ? val : 1.0
                             },
                             set: { UserDefaults.standard.set($0, forKey: "silenceDuration") }
                         )) {
@@ -85,10 +152,6 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                         .frame(width: 220)
                     }
-                    
-                    Text("Wait this long after you stop speaking before auto-commit")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 } else {
                     Text("Press ⌥K again to stop manually")
                         .font(.caption)
@@ -111,7 +174,7 @@ struct SettingsView: View {
                 HStack {
                     Text("Switch Mode")
                     Spacer()
-                    Text("⌘1-9")
+                    Text("⌘1-5")
                         .font(.system(.body, design: .monospaced))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -121,14 +184,13 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 400)
+        .frame(width: 480, height: 550)
         .onAppear {
             loadSettings()
         }
     }
     
     private func loadSettings() {
-        // Load API keys from Keychain (show masked placeholder)
         if KeychainManager.shared.getElevenLabsKey() != nil {
             elevenLabsKey = "••••••••••••••••"
         }
@@ -136,7 +198,6 @@ struct SettingsView: View {
             geminiKey = "••••••••••••••••"
         }
         
-        // Load language settings
         selectedLanguage = UserDefaults.standard.string(forKey: "inputLanguage") ?? "Auto-detect"
         targetLanguage = UserDefaults.standard.string(forKey: "targetLanguage") ?? "English"
         waitForSilence = UserDefaults.standard.bool(forKey: "waitForSilence")
@@ -144,7 +205,6 @@ struct SettingsView: View {
     
     private func saveAPIKeys() {
         do {
-            // Only save if not the masked placeholder
             if !elevenLabsKey.contains("•") && !elevenLabsKey.isEmpty {
                 try KeychainManager.shared.saveElevenLabsKey(elevenLabsKey)
             }
@@ -165,7 +225,6 @@ struct SettingsView: View {
         UserDefaults.standard.set(selectedLanguage, forKey: "inputLanguage")
         UserDefaults.standard.set(targetLanguage, forKey: "targetLanguage")
         
-        // Update coordinator
         if selectedLanguage == "Auto-detect" {
             TranscriptionCoordinator.shared.languageCode = nil
         } else {
@@ -175,19 +234,9 @@ struct SettingsView: View {
     
     private func languageToCode(_ language: String) -> String {
         let codes: [String: String] = [
-            "Croatian": "hr",
-            "English": "en",
-            "German": "de",
-            "Spanish": "es",
-            "French": "fr",
-            "Italian": "it",
-            "Portuguese": "pt",
-            "Dutch": "nl",
-            "Polish": "pl",
-            "Russian": "ru",
-            "Japanese": "ja",
-            "Chinese": "zh",
-            "Korean": "ko"
+            "Croatian": "hr", "English": "en", "German": "de", "Spanish": "es",
+            "French": "fr", "Italian": "it", "Portuguese": "pt", "Dutch": "nl",
+            "Polish": "pl", "Russian": "ru", "Japanese": "ja", "Chinese": "zh", "Korean": "ko"
         ]
         return codes[language] ?? "en"
     }
