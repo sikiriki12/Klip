@@ -14,18 +14,13 @@ protocol TranscriptionMode {
     /// Keyboard shortcut number (1-9)
     var shortcutNumber: Int { get }
     
-    /// Process the transcribed text through this mode
-    /// - Parameters:
-    ///   - text: The raw transcription from Scribe
-    ///   - context: Optional context (e.g., clipboard content)
-    /// - Returns: The processed text
-    func process(_ text: String, context: String?) async throws -> String
+    /// System prompt for Gemini (used when this mode is active)
+    var systemPrompt: String { get }
 }
 
 /// Built-in modes available in Klip
 enum ModeType: String, CaseIterable {
     case raw = "raw"
-    case translate = "translate"
     case fix = "fix"
     case bullet = "bullet"
     case email = "email"

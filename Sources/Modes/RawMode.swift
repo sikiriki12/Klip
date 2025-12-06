@@ -7,8 +7,6 @@ struct RawMode: TranscriptionMode {
     let description = "No processing - raw transcription"
     let shortcutNumber = 1
     
-    func process(_ text: String, context: String?) async throws -> String {
-        // Just return the text as-is
-        return text
-    }
+    /// Raw mode has no system prompt (unless translate is enabled, handled by ModeManager)
+    let systemPrompt = ""
 }

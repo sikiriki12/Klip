@@ -122,19 +122,15 @@ class TranscriptionCoordinator: ObservableObject {
             // Stop audio recorder first (important for VAD mode)
             self.audioRecorder.stopRecording()
             
-            // Process through current mode
+            // Process through current mode (handles translation toggle internally)
             Task {
                 do {
                     let processedText: String
                     
-                    // If mode is Raw or text is empty, skip processing
                     if text.isEmpty {
                         processedText = text
-                    } else if ModeManager.shared.currentMode.id == "raw" {
-                        processedText = text
-                        print("📝 Raw mode - no processing")
                     } else {
-                        print("🔄 Processing with mode: \(ModeManager.shared.currentMode.name)")
+                        // ModeManager handles mode + translation in one call
                         processedText = try await ModeManager.shared.processText(text)
                     }
                     

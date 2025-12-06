@@ -110,6 +110,24 @@ struct StatusBarView: View {
             }
             .font(.subheadline)
             
+            // Translation toggle
+            HStack {
+                Toggle(isOn: $modeManager.translateEnabled) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "globe")
+                            .foregroundColor(modeManager.translateEnabled ? .green : .secondary)
+                        Text("Translate to")
+                            .foregroundColor(.secondary)
+                        Text(modeManager.targetLanguage)
+                            .fontWeight(.medium)
+                            .foregroundColor(modeManager.translateEnabled ? .primary : .secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+            }
+            .font(.subheadline)
+            
             // Shortcut hint + Start/Stop button
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
