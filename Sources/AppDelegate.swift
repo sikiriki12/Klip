@@ -26,20 +26,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Create the popover
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 280)
+        popover.contentSize = NSSize(width: 300, height: 320)  // Slightly taller for new UI
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: StatusBarView())
         
-        // Register global hotkey (Option + K)
-        HotkeyManager.shared.registerHotkey { [weak self] in
-            self?.handleHotkey()
-        }
+        // Register global hotkeys
+        HotkeyManager.shared.registerHotkeys(
+            onRecording: { [weak self] in
+                self?.handleHotkey()
+            },
+            onModeSwitch: { number in
+                ModeManager.shared.selectMode(byShortcut: number)
+            }
+        )
         
         // Observe recording state changes
         setupRecordingObserver()
         
-        print("✅ Klip v0.3 is running! Press ⌥K (Option+K) to start recording.")
-        print("💡 Make sure to add your ElevenLabs API key in Settings first.")
+        print("✅ Klip v0.4 is running! Press ⌥K to record, ⌘1-5 to switch modes.")
+        print("💡 Make sure to add your API keys in Settings first.")
     }
     
     private func setupRecordingObserver() {
@@ -117,6 +122,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        HotkeyManager.shared.unregisterHotkey()
+        HotkeyManager.shared.unregisterHotkeys()
     }
 }

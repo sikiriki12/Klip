@@ -16,7 +16,7 @@ struct StatusBarView: View {
                 Text("Klip")
                     .font(.headline)
                 Spacer()
-                Text("v0.3")
+                Text("v0.4")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

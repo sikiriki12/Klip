@@ -7,8 +7,11 @@ class ModeManager: ObservableObject {
     
     /// All available modes
     let modes: [any TranscriptionMode] = [
-        RawMode()
-        // More modes will be added in Phase 3: Fix, Bullet, Email, etc.
+        RawMode(),
+        FixMode(),
+        BulletMode(),
+        EmailMode(),
+        SummarizeMode()
     ]
     
     /// Currently selected mode
