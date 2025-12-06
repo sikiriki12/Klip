@@ -4,7 +4,7 @@ import Foundation
 class GeminiService {
     static let shared = GeminiService()
     
-    private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
     
     private init() {}
     

@@ -119,10 +119,13 @@ class ModeManager: ObservableObject {
         
         // Build the user prompt with optional context
         var userPrompt = text
+        var hasClipboardContext = false
+        var hasScreenshotContext = false
         
         // Add clipboard context if mode uses it and it's available
         if currentMode.usesClipboardContext, let clipboardContent = ClipboardMonitor.shared.getFreshContent() {
             print("📋 Including clipboard context (\(clipboardContent.count) chars)")
+            hasClipboardContext = true
             userPrompt = """
             [Clipboard context - recently copied text that may be relevant]:
             \(clipboardContent.prefix(2000))
@@ -136,6 +139,56 @@ class ModeManager: ObservableObject {
         var screenshotData: Data? = nil
         if currentMode.usesScreenshotContext && ScreenshotService.shared.isEnabled {
             screenshotData = ScreenshotService.shared.capture()
+            if screenshotData != nil {
+                hasScreenshotContext = true
+                
+                // DEBUG MODE: Do separate OCR call to log what model reads
+                if ScreenshotService.shared.debugMode {
+                    print("🔍 DEBUG: Running separate OCR to see what model reads from screenshot...")
+                    do {
+                        let ocrResult = try await GeminiService.shared.generate(
+                            prompt: """
+                            Analyze this screenshot:
+                            1. DESCRIBE what you see (what app, what type of content)
+                            2. READ all visible text (transcribe it)
+                            3. EXPLAIN what this content is about (your understanding)
+                            """,
+                            systemInstruction: "You are analyzing a screenshot to understand its context. Be thorough but concise.",
+                            imageData: screenshotData
+                        )
+                        print("═══════════════════════════════════════════════════════════")
+                        print("🔍 MODEL READS FROM SCREENSHOT:")
+                        print("───────────────────────────────────────────────────────────")
+                        print(ocrResult)
+                        print("═══════════════════════════════════════════════════════════")
+                    } catch {
+                        print("❌ DEBUG OCR failed: \(error)")
+                    }
+                }
+                
+                // Add explicit instruction that screenshot is CONTEXT with OCR
+                if !hasClipboardContext {
+                    userPrompt = """
+                    [Screenshot context - image of user's active window]:
+                    (See attached image)
+                    
+                    FIRST: Read and extract ALL text visible in the screenshot. This text is the CONTEXT.
+                    
+                    [User's speech to process - THIS is what you should respond to]:
+                    \(text)
+                    """
+                } else {
+                    // Both contexts - append screenshot note
+                    userPrompt = """
+                    [Screenshot context - image of user's active window]:
+                    (See attached image)
+                    
+                    FIRST: Read and extract ALL text visible in the screenshot. This text is the CONTEXT.
+                    
+                    \(userPrompt)
+                    """
+                }
+            }
         }
         
         // Build system instruction
@@ -144,6 +197,15 @@ class ModeManager: ObservableObject {
         // Add mode-specific instructions (unless Raw)
         if currentMode.id != "raw" {
             systemInstruction = currentMode.systemPrompt
+            
+            // IMPORTANT: If translate is OFF, preserve the input language
+            if !translateEnabled {
+                systemInstruction += """
+                
+                
+                LANGUAGE: Respond in the SAME language as the user's speech. Do NOT translate to English or any other language.
+                """
+            }
             
             // Add context assessment instructions
             var contextNotes: [String] = []
@@ -160,10 +222,10 @@ class ModeManager: ObservableObject {
                 systemInstruction += """
                 
                 
-                Note: You may receive additional context: \(contextNotes.joined(separator: " and/or ")).
-                First assess if this context is relevant to the user's speech.
-                If relevant (e.g., screenshot shows an email they're replying to, or clipboard contains text they're referencing), use it to inform your response.
-                If not relevant, ignore the context and focus only on the user's speech.
+                CONTEXT: You may receive \(contextNotes.joined(separator: " and/or ")).
+                This shows what the user is looking at or referencing.
+                Use it to understand their request, but do NOT process/translate the context itself.
+                If the context is not relevant, ignore it.
                 """
             }
             
@@ -193,11 +255,17 @@ class ModeManager: ObservableObject {
             """
         }
         
+        let startTime = Date()
+        print("⏱️ Starting Gemini processing...")
+        
         let result = try await GeminiService.shared.generate(
             prompt: userPrompt,
             systemInstruction: systemInstruction,
             imageData: screenshotData
         )
+        
+        let elapsed = Date().timeIntervalSince(startTime)
+        print("⏱️ Gemini completed in \(String(format: "%.2f", elapsed))s")
         
         if translateEnabled {
             print("🌐 Translated to \(targetLanguage)")

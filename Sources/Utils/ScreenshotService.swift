@@ -25,8 +25,15 @@ class ScreenshotService: ObservableObject {
         }
     }
     
-    /// Last captured screenshot (as JPEG data for API)
+    /// Last captured screenshot
     private(set) var lastCapture: Data?
+    
+    /// Last capture dimensions for logging
+    private(set) var lastCaptureWidth: Int = 0
+    private(set) var lastCaptureHeight: Int = 0
+    
+    /// Debug mode - when ON, does separate OCR call to log what model reads
+    @Published var debugMode: Bool = false  // OFF by default
     
     /// Whether we have a recent capture
     var hasCapture: Bool { lastCapture != nil }
@@ -43,7 +50,6 @@ class ScreenshotService: ObservableObject {
     }
     
     /// Capture screenshot based on current mode
-    /// Returns JPEG data or nil if capture failed
     func capture() -> Data? {
         switch captureMode {
         case .activeWindow:
@@ -55,37 +61,29 @@ class ScreenshotService: ObservableObject {
     
     /// Capture the frontmost window
     private func captureActiveWindow() -> Data? {
-        // Get window list
         guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
             print("❌ Failed to get window list")
             return nil
         }
         
-        // Get frontmost app
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
             print("❌ No frontmost application")
             return nil
         }
-        
-        // Find the topmost window belonging to the frontmost app
-        // Skip our own app and system UI elements
-        let klipBundleId = Bundle.main.bundleIdentifier ?? "com.klip"
         
         for window in windowList {
             guard let ownerPID = window[kCGWindowOwnerPID as String] as? pid_t,
                   let windowLayer = window[kCGWindowLayer as String] as? Int,
                   let windowID = window[kCGWindowNumber as String] as? CGWindowID,
                   let bounds = window[kCGWindowBounds as String] as? [String: CGFloat],
-                  windowLayer == 0  // Normal window layer
+                  windowLayer == 0
             else { continue }
             
-            // Skip our own window
             if let bundleId = window[kCGWindowOwnerName as String] as? String,
                bundleId.contains("Klip") {
                 continue
             }
             
-            // Check if this window belongs to frontmost app
             if ownerPID == frontApp.processIdentifier {
                 let rect = CGRect(
                     x: bounds["X"] ?? 0,
@@ -94,10 +92,12 @@ class ScreenshotService: ObservableObject {
                     height: bounds["Height"] ?? 0
                 )
                 
-                // Capture this window
                 if let image = CGWindowListCreateImage(rect, .optionIncludingWindow, windowID, [.bestResolution, .boundsIgnoreFraming]) {
+                    let originalWidth = image.width
+                    let originalHeight = image.height
+                    
                     lastCapture = imageToJPEG(image)
-                    print("📸 Captured active window: \(frontApp.localizedName ?? "Unknown") (\(Int(rect.width))x\(Int(rect.height)))")
+                    print("📸 Captured: \(frontApp.localizedName ?? "Unknown") | Original: \(originalWidth)x\(originalHeight) → Final: \(lastCaptureWidth)x\(lastCaptureHeight) | \(lastCapture?.count ?? 0 / 1024)KB")
                     return lastCapture
                 }
             }
@@ -111,13 +111,11 @@ class ScreenshotService: ObservableObject {
     private func captureScreenWithCursor() -> Data? {
         let mouseLocation = NSEvent.mouseLocation
         
-        // Find screen containing cursor
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main else {
             print("❌ No screen found")
             return nil
         }
         
-        // Convert to CG coordinates (flipped Y)
         let cgRect = CGRect(
             x: screen.frame.origin.x,
             y: screen.frame.origin.y,
@@ -126,8 +124,11 @@ class ScreenshotService: ObservableObject {
         )
         
         if let image = CGWindowListCreateImage(cgRect, .optionOnScreenOnly, kCGNullWindowID, .bestResolution) {
+            let originalWidth = image.width
+            let originalHeight = image.height
+            
             lastCapture = imageToJPEG(image)
-            print("📸 Captured screen (\(Int(screen.frame.width))x\(Int(screen.frame.height)))")
+            print("📸 Captured screen | Original: \(originalWidth)x\(originalHeight) → Final: \(lastCaptureWidth)x\(lastCaptureHeight) | \(lastCapture?.count ?? 0 / 1024)KB")
             return lastCapture
         }
         
@@ -135,11 +136,10 @@ class ScreenshotService: ObservableObject {
         return nil
     }
     
-    /// Convert CGImage to JPEG data (compressed for API)
+    /// Convert CGImage to JPEG data (1024px max, 70% quality)
     private func imageToJPEG(_ cgImage: CGImage) -> Data? {
         let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
         
-        // Resize if too large (max 1024px on longest side for API efficiency)
         let maxSize: CGFloat = 1024
         var targetSize = nsImage.size
         
@@ -148,7 +148,9 @@ class ScreenshotService: ObservableObject {
             targetSize = NSSize(width: targetSize.width * scale, height: targetSize.height * scale)
         }
         
-        // Create resized image
+        lastCaptureWidth = Int(targetSize.width)
+        lastCaptureHeight = Int(targetSize.height)
+        
         let resizedImage = NSImage(size: targetSize)
         resizedImage.lockFocus()
         nsImage.draw(in: NSRect(origin: .zero, size: targetSize),
@@ -157,18 +159,15 @@ class ScreenshotService: ObservableObject {
                      fraction: 1.0)
         resizedImage.unlockFocus()
         
-        // Convert to JPEG
         guard let tiffData = resizedImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
               let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.7]) else {
             return nil
         }
         
-        print("📸 Image compressed to \(jpegData.count / 1024)KB")
         return jpegData
     }
     
-    /// Clear the last capture
     func clearCapture() {
         lastCapture = nil
     }
