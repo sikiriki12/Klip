@@ -109,7 +109,7 @@ class ModeManager: ObservableObject {
         visibleModeIds.contains(modeId)
     }
     
-    /// Process text through current mode, optionally with translation
+    /// Process text through current mode, optionally with translation and context
     func processText(_ text: String, context: String? = nil) async throws -> String {
         // If mode is Raw and translate is OFF, return as-is
         if currentMode.id == "raw" && !translateEnabled {
@@ -117,12 +117,39 @@ class ModeManager: ObservableObject {
             return text
         }
         
-        // Build combined prompt
+        // Build the user prompt with optional context
+        var userPrompt = text
+        
+        // Add clipboard context if mode uses it and it's available
+        if currentMode.usesClipboardContext, let clipboardContent = ClipboardMonitor.shared.getFreshContent() {
+            print("📋 Including clipboard context (\(clipboardContent.count) chars)")
+            userPrompt = """
+            [Clipboard context - recently copied text that may be relevant]:
+            \(clipboardContent.prefix(2000))
+            
+            [User's speech to process]:
+            \(text)
+            """
+        }
+        
+        // Build system instruction
         var systemInstruction = ""
         
         // Add mode-specific instructions (unless Raw)
         if currentMode.id != "raw" {
             systemInstruction = currentMode.systemPrompt
+            
+            // Add context assessment instruction if mode uses context
+            if currentMode.usesClipboardContext {
+                systemInstruction += """
+                
+                
+                Note: If clipboard context is provided, first assess if it's relevant to the user's speech.
+                If relevant (e.g., it's an email they're replying to), use it to inform your response.
+                If not relevant, ignore the clipboard context and focus only on the speech.
+                """
+            }
+            
             print("🔄 Processing with mode: \(currentMode.name)")
         }
         
@@ -150,7 +177,7 @@ class ModeManager: ObservableObject {
         }
         
         let result = try await GeminiService.shared.generate(
-            prompt: text,
+            prompt: userPrompt,
             systemInstruction: systemInstruction
         )
         

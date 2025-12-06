@@ -62,6 +62,13 @@ struct SettingsView: View {
                             Text(mode.name)
                                 .fontWeight(.medium)
                             
+                            // Context indicator
+                            if mode.usesClipboardContext {
+                                Text("📋")
+                                    .font(.caption)
+                                    .help("Uses clipboard context")
+                            }
+                            
                             if let position = modeManager.visibleModeIds.firstIndex(of: mode.id) {
                                 Text("⌘\(position + 1)")
                                     .font(.caption)
@@ -90,20 +97,54 @@ struct SettingsView: View {
                         
                         // Show prompt when expanded
                         if expandedModeId == mode.id {
-                            Text(mode.systemPrompt.isEmpty ? "(No prompt - passthrough)" : mode.systemPrompt)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(8)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(6)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(mode.systemPrompt.isEmpty ? "(No prompt - passthrough)" : mode.systemPrompt)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if mode.usesClipboardContext {
+                                    Text("📋 Uses clipboard context when enabled")
+                                        .font(.caption2)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding(8)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(6)
                         }
                     }
                     .padding(.vertical, 2)
                 }
                 
-                Text("Check modes to show in quick bar. Max 5.")
+                Text("Check modes to show in quick bar. Max 5. 📋 = uses context")
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+            
+            Section("Context") {
+                Toggle("Enable clipboard context", isOn: Binding(
+                    get: { ClipboardMonitor.shared.isEnabled },
+                    set: { ClipboardMonitor.shared.isEnabled = $0 }
+                ))
+                
+                Text("When enabled, modes marked with 📋 will use recently copied text (<1 min) as context")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if ClipboardMonitor.shared.isEnabled {
+                    HStack {
+                        Text("Status:")
+                            .foregroundColor(.secondary)
+                        if ClipboardMonitor.shared.hasFreshContext {
+                            Text("✅ Fresh context available")
+                                .foregroundColor(.green)
+                        } else {
+                            Text("No fresh context")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .font(.caption)
+                }
             }
             
             Section("Transcription") {
@@ -184,7 +225,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 550)
+        .frame(width: 480, height: 650)
         .onAppear {
             loadSettings()
         }

@@ -16,19 +16,12 @@ protocol TranscriptionMode {
     
     /// System prompt for Gemini (used when this mode is active)
     var systemPrompt: String { get }
+    
+    /// Whether this mode uses clipboard context (when available)
+    var usesClipboardContext: Bool { get }
 }
 
-/// Built-in modes available in Klip
-enum ModeType: String, CaseIterable {
-    case raw = "raw"
-    case fix = "fix"
-    case bullet = "bullet"
-    case email = "email"
-    case summarize = "summarize"
-    case tweet = "tweet"
-    case commit = "commit"
-    case reply = "reply"
-    case task = "task"
-    case code = "code"
-    case formal = "formal"
+// Default implementation - most modes don't use context
+extension TranscriptionMode {
+    var usesClipboardContext: Bool { false }
 }
