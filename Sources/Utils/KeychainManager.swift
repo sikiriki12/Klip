@@ -1,11 +1,25 @@
 import Foundation
 import Security
 
-/// Securely stores API keys in macOS Keychain
+/// Securely stores API keys - supports both Keychain (secure) and UserDefaults (dev mode)
 class KeychainManager {
     static let shared = KeychainManager()
     
     private let service = "com.klip.app"
+    
+    /// Whether to use Keychain (true) or UserDefaults (false)
+    var useKeychain: Bool {
+        get {
+            // Default to true (Keychain) if not set
+            if UserDefaults.standard.object(forKey: "useKeychainStorage") == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: "useKeychainStorage")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "useKeychainStorage")
+        }
+    }
     
     private init() {}
     
@@ -13,27 +27,54 @@ class KeychainManager {
     
     /// Save ElevenLabs API key
     func saveElevenLabsKey(_ key: String) throws {
-        try save(key: key, account: "elevenlabs_api_key")
+        if useKeychain {
+            try saveToKeychain(key: key, account: "elevenlabs_api_key")
+        } else {
+            saveToUserDefaults(key: key, account: "elevenlabs_api_key")
+        }
     }
     
     /// Get ElevenLabs API key
     func getElevenLabsKey() -> String? {
-        return get(account: "elevenlabs_api_key")
+        if useKeychain {
+            return getFromKeychain(account: "elevenlabs_api_key")
+        } else {
+            return getFromUserDefaults(account: "elevenlabs_api_key")
+        }
     }
     
     /// Save Gemini API key
     func saveGeminiKey(_ key: String) throws {
-        try save(key: key, account: "gemini_api_key")
+        if useKeychain {
+            try saveToKeychain(key: key, account: "gemini_api_key")
+        } else {
+            saveToUserDefaults(key: key, account: "gemini_api_key")
+        }
     }
     
     /// Get Gemini API key
     func getGeminiKey() -> String? {
-        return get(account: "gemini_api_key")
+        if useKeychain {
+            return getFromKeychain(account: "gemini_api_key")
+        } else {
+            return getFromUserDefaults(account: "gemini_api_key")
+        }
     }
     
-    // MARK: - Generic Keychain Operations
+    // MARK: - UserDefaults Storage (Dev Mode)
     
-    private func save(key: String, account: String) throws {
+    private func saveToUserDefaults(key: String, account: String) {
+        UserDefaults.standard.set(key, forKey: "apikey_\(account)")
+        print("✅ Saved \(account) to UserDefaults (dev mode)")
+    }
+    
+    private func getFromUserDefaults(account: String) -> String? {
+        return UserDefaults.standard.string(forKey: "apikey_\(account)")
+    }
+    
+    // MARK: - Keychain Storage (Secure)
+    
+    private func saveToKeychain(key: String, account: String) throws {
         guard let data = key.data(using: .utf8) else {
             throw KeychainError.encodingFailed
         }
@@ -64,7 +105,7 @@ class KeychainManager {
         print("✅ Saved \(account) to Keychain")
     }
     
-    private func get(account: String) -> String? {
+    private func getFromKeychain(account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -87,12 +128,18 @@ class KeychainManager {
     
     /// Delete all stored keys
     func deleteAll() {
+        // Delete from Keychain
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service
         ]
         SecItemDelete(query as CFDictionary)
-        print("🗑️ Deleted all Keychain items")
+        
+        // Delete from UserDefaults
+        UserDefaults.standard.removeObject(forKey: "apikey_elevenlabs_api_key")
+        UserDefaults.standard.removeObject(forKey: "apikey_gemini_api_key")
+        
+        print("🗑️ Deleted all stored keys")
     }
 }
 

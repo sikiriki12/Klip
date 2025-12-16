@@ -57,14 +57,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusBarIcon(recording: Bool) {
         guard let button = statusItem.button else { return }
         
-        if recording {
-            // Red microphone when recording
-            let config = NSImage.SymbolConfiguration(paletteColors: [.systemRed])
-            button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Recording")?
-                .withSymbolConfiguration(config)
+        // Use full-size icons (500x500) - code resizes to 18pt
+        let iconName = recording ? "StatusBarIcon-Blue" : "StatusBarIcon-Black"
+        
+        if let resourceURL = Bundle.main.url(forResource: "Resources", withExtension: nil),
+           let imageURL = URL(string: "\(resourceURL.absoluteString)/\(iconName).png"),
+           let image = NSImage(contentsOf: imageURL) {
+            image.size = NSSize(width: 18, height: 18)
+            button.image = image
         } else {
-            // Default microphone
-            button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Klip")
+            // Fallback to SF Symbols
+            if recording {
+                let config = NSImage.SymbolConfiguration(paletteColors: [.systemBlue])
+                button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Recording")?
+                    .withSymbolConfiguration(config)
+            } else {
+                button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Klip")
+            }
         }
     }
     

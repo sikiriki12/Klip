@@ -48,10 +48,6 @@ struct SettingsView: View {
                     .textFieldStyle(.roundedBorder)
                 
                 HStack {
-                    Text("Keys are stored securely in Keychain")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
                     Spacer()
                     
                     Button("Save Keys") {
@@ -64,6 +60,25 @@ struct SettingsView: View {
                     Text("✅ Keys saved successfully!")
                         .font(.caption)
                         .foregroundColor(.green)
+                }
+                
+                Toggle("🔐 Store in Keychain", isOn: Binding(
+                    get: { KeychainManager.shared.useKeychain },
+                    set: { newValue in
+                        KeychainManager.shared.useKeychain = newValue
+                        // Reload keys from new storage location
+                        loadSettings()
+                    }
+                ))
+                
+                if KeychainManager.shared.useKeychain {
+                    Text("Secure storage. May require password during development.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("⚠️ Keys stored in plain text. Use only for development.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
                 }
             }
             

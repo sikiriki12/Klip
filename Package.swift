@@ -9,7 +9,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Klip",
-            path: "Sources"
+            path: "Sources",
+            resources: [
+                .copy("../Resources")
+            ]
         )
     ]
 )
