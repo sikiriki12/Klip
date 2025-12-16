@@ -57,23 +57,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusBarIcon(recording: Bool) {
         guard let button = statusItem.button else { return }
         
-        // Use full-size icons (500x500) - code resizes to 18pt
         let iconName = recording ? "StatusBarIcon-Blue" : "StatusBarIcon-Black"
         
-        if let resourceURL = Bundle.main.url(forResource: "Resources", withExtension: nil),
-           let imageURL = URL(string: "\(resourceURL.absoluteString)/\(iconName).png"),
-           let image = NSImage(contentsOf: imageURL) {
+        // Try loading from app bundle Resources (production)
+        if let bundleURL = Bundle.main.resourceURL,
+           let image = NSImage(contentsOf: bundleURL.appendingPathComponent("\(iconName).png")) {
             image.size = NSSize(width: 18, height: 18)
             button.image = image
+            return
+        }
+        
+        // Try loading from SPM resource bundle (development)
+        if let resourceURL = Bundle.main.url(forResource: "Resources", withExtension: nil),
+           let image = NSImage(contentsOf: resourceURL.appendingPathComponent("\(iconName).png")) {
+            image.size = NSSize(width: 18, height: 18)
+            button.image = image
+            return
+        }
+        
+        // Fallback to SF Symbols
+        if recording {
+            let config = NSImage.SymbolConfiguration(paletteColors: [.systemBlue])
+            button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Recording")?
+                .withSymbolConfiguration(config)
         } else {
-            // Fallback to SF Symbols
-            if recording {
-                let config = NSImage.SymbolConfiguration(paletteColors: [.systemBlue])
-                button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Recording")?
-                    .withSymbolConfiguration(config)
-            } else {
-                button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Klip")
-            }
+            button.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Klip")
         }
     }
     

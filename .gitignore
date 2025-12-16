@@ -29,3 +29,8 @@ Pods/
 *.swp
 *.swo
 *~
+
+# Build artifacts
+Klip.app/
+Klip.dmg
+Resources/AppIcon.iconset/
