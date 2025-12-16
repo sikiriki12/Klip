@@ -207,7 +207,13 @@ class ModeManager: ObservableObject {
         // Capture screenshot if mode uses it and it's enabled
         var screenshotData: Data? = nil
         if currentMode.usesScreenshotContext && ScreenshotService.shared.isEnabled {
-            screenshotData = ScreenshotService.shared.capture()
+            // Check if we need async capture (select area mode)
+            if ScreenshotService.shared.requiresAsyncCapture {
+                screenshotData = await ScreenshotService.shared.captureSelectArea()
+            } else {
+                screenshotData = ScreenshotService.shared.capture()
+            }
+            
             if screenshotData != nil {
                 hasScreenshotContext = true
                 

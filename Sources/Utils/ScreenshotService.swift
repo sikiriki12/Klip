@@ -17,6 +17,7 @@ class ScreenshotService: ObservableObject {
     enum CaptureMode: String, CaseIterable {
         case activeWindow = "Active Window"
         case screenWithCursor = "Screen with Cursor"
+        case selectArea = "Select Area"
     }
     
     @Published var captureMode: CaptureMode {
@@ -49,13 +50,67 @@ class ScreenshotService: ObservableObject {
         }
     }
     
-    /// Capture screenshot based on current mode
+    /// Capture screenshot based on current mode (sync - for non-interactive modes)
     func capture() -> Data? {
         switch captureMode {
         case .activeWindow:
             return captureActiveWindow()
         case .screenWithCursor:
             return captureScreenWithCursor()
+        case .selectArea:
+            // For select area, use captureAsync instead
+            return nil
+        }
+    }
+    
+    /// Check if current mode requires async capture (user interaction)
+    var requiresAsyncCapture: Bool {
+        captureMode == .selectArea
+    }
+    
+    /// Capture screenshot with user area selection (async)
+    func captureSelectArea() async -> Data? {
+        // Use macOS screencapture command with interactive selection
+        // -i = interactive (selection mode)
+        // -c = copy to clipboard
+        // -x = no sound
+        
+        let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent("klip_capture.png")
+        
+        // Remove old temp file if exists
+        try? FileManager.default.removeItem(at: tempFile)
+        
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        process.arguments = ["-i", "-x", tempFile.path]
+        
+        do {
+            print("📸 Select area mode: waiting for user selection...")
+            try process.run()
+            process.waitUntilExit()
+            
+            // Check if user cancelled (file won't exist)
+            guard FileManager.default.fileExists(atPath: tempFile.path),
+                  let imageData = try? Data(contentsOf: tempFile),
+                  let image = NSImage(data: imageData),
+                  let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+                print("⚠️ Selection cancelled or failed")
+                return nil
+            }
+            
+            let originalWidth = cgImage.width
+            let originalHeight = cgImage.height
+            
+            lastCapture = imageToJPEG(cgImage)
+            print("📸 Captured selection | Original: \(originalWidth)x\(originalHeight) → Final: \(lastCaptureWidth)x\(lastCaptureHeight) | \(lastCapture?.count ?? 0 / 1024)KB")
+            
+            // Clean up temp file
+            try? FileManager.default.removeItem(at: tempFile)
+            
+            return lastCapture
+        } catch {
+            print("❌ Selection capture failed: \(error)")
+            return nil
         }
     }
     
