@@ -22,8 +22,11 @@ class TranscriptionCoordinator: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: "waitForSilence") }
     }
     
-    // VAD is enabled when waitForSilence is true
+    // VAD is enabled when waitForSilence is true (can be inverted per-recording)
     private var useVAD: Bool { waitForSilence }
+    
+    // Track whether current recording uses VAD (for proper stop handling)
+    private var currentRecordingUsesVAD = false
     
     private init() {
         setupAudioRecorder()
@@ -33,16 +36,18 @@ class TranscriptionCoordinator: ObservableObject {
     // MARK: - Public Interface
     
     /// Toggle recording on/off
-    func toggleRecording() {
+    /// - Parameter invertSilence: If true, invert the wait-for-silence setting for this recording
+    func toggleRecording(invertSilence: Bool = false) {
         if isRecording {
             stopRecording()
         } else {
-            startRecording()
+            startRecording(invertSilence: invertSilence)
         }
     }
     
     /// Start recording and transcription
-    func startRecording() {
+    /// - Parameter invertSilence: If true, invert the wait-for-silence setting
+    func startRecording(invertSilence: Bool = false) {
         guard !isRecording else { return }
         
         // Get API key
@@ -58,9 +63,12 @@ class TranscriptionCoordinator: ObservableObject {
         lastTranscript = ""
         errorMessage = nil
         
+        // Determine if we should use VAD (invert if requested)
+        currentRecordingUsesVAD = invertSilence ? !useVAD : useVAD
+        
         // Configure VAD
         var vadConfig = ScribeService.VADConfig()
-        vadConfig.enabled = useVAD
+        vadConfig.enabled = currentRecordingUsesVAD
         
         // Read silence duration from settings (minimum: 1 second)
         let silenceDuration = UserDefaults.standard.double(forKey: "silenceDuration")
@@ -70,10 +78,15 @@ class TranscriptionCoordinator: ObservableObject {
         // Connect to Scribe with VAD config
         scribeService.connect(apiKey: apiKey, languageCode: languageCode, vadConfig: vadConfig)
         
-        // Play start sound
-        SoundPlayer.shared.playStartSound()
+        // Play different start sound based on mode
+        if currentRecordingUsesVAD {
+            SoundPlayer.shared.playStartSound()  // Normal beep for auto-stop
+        } else {
+            SoundPlayer.shared.playManualModeSound()  // Different sound for manual stop
+        }
         
-        print("🎙️ Starting transcription...")
+        let modeDesc = currentRecordingUsesVAD ? "auto-stop on silence" : "manual stop only"
+        print("🎙️ Starting transcription (\(modeDesc))...")
     }
     
     /// Stop recording and get final transcript

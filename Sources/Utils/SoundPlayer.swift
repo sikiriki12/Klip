@@ -28,9 +28,17 @@ class SoundPlayer {
         }
     }
     
-    /// Play a start recording sound
+    /// Play a start recording sound (auto-stop mode)
     func playStartSound() {
         if let sound = NSSound(named: NSSound.Name("Pop")) {
+            sound.play()
+        }
+    }
+    
+    /// Play a start recording sound for manual stop mode (different tone)
+    func playManualModeSound() {
+        // Use a double beep - "Morse" gives a distinct rhythmic sound
+        if let sound = NSSound(named: NSSound.Name("Morse")) {
             sound.play()
         }
     }

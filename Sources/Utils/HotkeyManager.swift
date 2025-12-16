@@ -9,16 +9,17 @@ class HotkeyManager {
     private var hotkeyRefs: [EventHotKeyRef] = []
     
     // Callbacks
-    private var recordingCallback: (() -> Void)?
+    // Bool parameter: true = invert silence setting
+    private var recordingCallback: ((Bool) -> Void)?
     private var modeCallback: ((Int) -> Void)?
     
     private init() {}
     
     /// Register all hotkeys
     /// - Parameters:
-    ///   - onRecording: Called when ⌥K is pressed
+    ///   - onRecording: Called when ⌥K or ⇧⌥K is pressed. Bool = true to invert silence setting.
     ///   - onModeSwitch: Called when ⌘1-5 is pressed, with the number
-    func registerHotkeys(onRecording: @escaping () -> Void, onModeSwitch: @escaping (Int) -> Void) {
+    func registerHotkeys(onRecording: @escaping (Bool) -> Void, onModeSwitch: @escaping (Int) -> Void) {
         self.recordingCallback = onRecording
         self.modeCallback = onModeSwitch
         
@@ -33,11 +34,13 @@ class HotkeyManager {
             var hotkeyID = EventHotKeyID()
             GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotkeyID)
             
-            // ID 1 = recording, ID 2-6 = mode 1-5
+            // ID 1 = recording (⌥K), ID 7 = recording inverted (⇧⌥K), ID 2-10 = mode 1-9
             if hotkeyID.id == 1 {
-                manager.recordingCallback?()
-            } else if hotkeyID.id >= 2 && hotkeyID.id <= 6 {
-                manager.modeCallback?(Int(hotkeyID.id) - 1)  // Convert to 1-5
+                manager.recordingCallback?(false)  // Normal mode
+            } else if hotkeyID.id == 7 {
+                manager.recordingCallback?(true)   // Inverted silence mode
+            } else if hotkeyID.id >= 2 && hotkeyID.id <= 10 {
+                manager.modeCallback?(Int(hotkeyID.id) - 1)  // Convert to 1-9
             }
             
             return noErr
@@ -46,13 +49,17 @@ class HotkeyManager {
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
         InstallEventHandler(GetApplicationEventTarget(), handlerBlock, 1, &eventType, selfPtr, &eventHandler)
         
-        // Register Option+K for recording (ID: 1)
+        // Register Option+K for recording (ID: 1) - normal mode
         registerHotkey(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(optionKey), id: 1, name: "⌥K")
         
-        // Register ⌘1-5 for mode switching (ID: 2-6)
+        // Register Shift+Option+K for recording with inverted silence (ID: 7)
+        registerHotkey(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(optionKey | shiftKey), id: 7, name: "⇧⌥K")
+        
+        // Register ⌘1-9 for mode switching (ID: 2-10)
         let numberKeyCodes: [UInt32] = [
             UInt32(kVK_ANSI_1), UInt32(kVK_ANSI_2), UInt32(kVK_ANSI_3), 
-            UInt32(kVK_ANSI_4), UInt32(kVK_ANSI_5)
+            UInt32(kVK_ANSI_4), UInt32(kVK_ANSI_5), UInt32(kVK_ANSI_6),
+            UInt32(kVK_ANSI_7), UInt32(kVK_ANSI_8), UInt32(kVK_ANSI_9)
         ]
         for (index, keyCode) in numberKeyCodes.enumerated() {
             registerHotkey(keyCode: keyCode, modifiers: UInt32(cmdKey), id: UInt32(index + 2), name: "⌘\(index + 1)")

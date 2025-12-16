@@ -24,17 +24,17 @@ class ModeManager: ObservableObject {
         builtInModes + customModes
     }
     
-    /// IDs of modes visible in quick bar (ordered), max 5
-    @Published var visibleModeIds: [String] {
+    /// Mode IDs in user-preferred order (first 9 get ⌘1-9 shortcuts)
+    @Published var orderedModeIds: [String] {
         didSet {
-            UserDefaults.standard.set(visibleModeIds, forKey: "visibleModeIds")
+            UserDefaults.standard.set(orderedModeIds, forKey: "orderedModeIds")
             objectWillChange.send()
         }
     }
     
-    /// Modes visible in quick bar (computed from visibleModeIds)
+    /// Modes in user-preferred order (computed from orderedModeIds)
     var modes: [any TranscriptionMode] {
-        visibleModeIds.compactMap { id in allModes.first { $0.id == id } }
+        orderedModeIds.compactMap { id in allModes.first { $0.id == id } }
     }
     
     /// Currently selected mode
@@ -79,14 +79,23 @@ class ModeManager: ObservableObject {
         }
         customModes = loadedCustomModes
         
-        // Load visible mode IDs or use defaults
-        if let savedIds = UserDefaults.standard.array(forKey: "visibleModeIds") as? [String] {
-            visibleModeIds = savedIds
+        // Load ordered mode IDs or migrate from old format or use defaults
+        if let savedIds = UserDefaults.standard.array(forKey: "orderedModeIds") as? [String] {
+            orderedModeIds = savedIds
+        } else if let oldVisibleIds = UserDefaults.standard.array(forKey: "visibleModeIds") as? [String] {
+            // Migrate from old visible-only format: start with old visible, add remaining
+            let allIds = (builtInModes.map { $0.id }) + loadedCustomModes.map { $0.id }
+            var ordered = oldVisibleIds.filter { allIds.contains($0) }
+            for id in allIds where !ordered.contains(id) {
+                ordered.append(id)
+            }
+            orderedModeIds = ordered
         } else {
-            visibleModeIds = ["raw", "fix", "polish", "email", "im"]
+            // Default order: all built-in modes then custom
+            orderedModeIds = (builtInModes.map { $0.id }) + loadedCustomModes.map { $0.id }
         }
         
-        // Load saved mode or default to first visible
+        // Load saved mode or default to first
         let savedModeId = UserDefaults.standard.string(forKey: "currentModeId") ?? "raw"
         currentMode = builtInModes.first { $0.id == savedModeId } ?? builtInModes[0]
         
@@ -116,13 +125,14 @@ class ModeManager: ObservableObject {
             usesScreenshotContext: usesScreenshot
         )
         customModes.append(mode)
+        orderedModeIds.append(mode.id)  // Add to ordered list
         saveCustomModes()
         objectWillChange.send()
     }
     
     func deleteCustomMode(id: String) {
         customModes.removeAll { $0.id == id }
-        visibleModeIds.removeAll { $0 == id }
+        orderedModeIds.removeAll { $0 == id }
         saveCustomModes()
         objectWillChange.send()
     }
@@ -137,7 +147,7 @@ class ModeManager: ObservableObject {
     
     // MARK: - Mode Selection
     
-    /// Select a mode by shortcut number (1-5)
+    /// Select a mode by shortcut number (1-9)
     func selectMode(byShortcut number: Int) {
         let index = number - 1
         guard index >= 0 && index < modes.count else {
@@ -155,27 +165,9 @@ class ModeManager: ObservableObject {
         objectWillChange.send()
     }
     
-    /// Move a mode in the visible list
-    func moveMode(from source: Int, to destination: Int) {
-        guard source < visibleModeIds.count && destination <= visibleModeIds.count else { return }
-        let id = visibleModeIds.remove(at: source)
-        visibleModeIds.insert(id, at: destination > source ? destination - 1 : destination)
-    }
-    
-    /// Toggle mode visibility
-    func toggleModeVisibility(_ modeId: String) {
-        if visibleModeIds.contains(modeId) {
-            // Can't remove if it's the last one
-            guard visibleModeIds.count > 1 else { return }
-            visibleModeIds.removeAll { $0 == modeId }
-        } else if visibleModeIds.count < 5 {
-            visibleModeIds.append(modeId)
-        }
-    }
-    
-    /// Check if mode is visible
-    func isModeVisible(_ modeId: String) -> Bool {
-        visibleModeIds.contains(modeId)
+    /// Move a mode in the ordered list
+    func moveMode(from source: IndexSet, to destination: Int) {
+        orderedModeIds.move(fromOffsets: source, toOffset: destination)
     }
     
     /// Process text through current mode, optionally with translation and context

@@ -7,62 +7,46 @@ struct StatusBarView: View {
     @State private var showCopiedFeedback = false
     
     var body: some View {
-        VStack(spacing: 12) {
-            // Header
-            HStack {
-                Image(systemName: "waveform")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                Text("Klip")
-                    .font(.headline)
-                Spacer()
-                Text("v0.4")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Divider()
-            
-            // Recording status with Start/Stop button
-            HStack {
-                Circle()
-                    .fill(coordinator.isRecording ? Color.red : Color.gray)
-                    .frame(width: 12, height: 12)
-                    .animation(.easeInOut(duration: 0.3), value: coordinator.isRecording)
-                
-                Text(coordinator.isRecording ? "Recording..." : "Ready")
-                    .font(.subheadline)
-                    .fontWeight(coordinator.isRecording ? .semibold : .regular)
-                
-                Spacer()
-                
+        VStack(spacing: 14) {
+            // Transcription area (main focus)
+            VStack(spacing: 8) {
                 if coordinator.isRecording {
-                    Image(systemName: "waveform")
-                        .foregroundColor(.red)
-                }
-            }
-            
-            // Partial transcript preview
-            if coordinator.isRecording && !coordinator.partialTranscript.isEmpty {
-                Text(coordinator.partialTranscript)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(6)
-            }
-            
-            // Last transcript with copy button
-            if !coordinator.lastTranscript.isEmpty && !coordinator.isRecording {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Last transcription:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
+                    // Live recording view
+                    VStack(spacing: 6) {
+                        HStack {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                            Text("Recording...")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                        
+                        if !coordinator.partialTranscript.isEmpty {
+                            ScrollView {
+                                Text(coordinator.partialTranscript)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.primary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(maxHeight: 100)
+                        }
+                    }
+                    .padding(10)
+                    .background(Color.red.opacity(0.08))
+                    .cornerRadius(10)
+                } else if !coordinator.lastTranscript.isEmpty {
+                    // Last transcript with copy
+                    HStack(alignment: .top, spacing: 8) {
+                        ScrollView {
+                            Text(coordinator.lastTranscript)
+                                .font(.system(size: 11))
+                                .foregroundColor(.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxHeight: 110)
+                        
                         Button(action: {
                             ClipboardManager.shared.copyToClipboard(coordinator.lastTranscript)
                             showCopiedFeedback = true
@@ -70,32 +54,25 @@ struct StatusBarView: View {
                                 showCopiedFeedback = false
                             }
                         }) {
-                            HStack(spacing: 2) {
-                                Image(systemName: showCopiedFeedback ? "checkmark" : "doc.on.doc")
-                                Text(showCopiedFeedback ? "Copied!" : "Copy")
-                            }
-                            .font(.caption2)
-                            .foregroundColor(showCopiedFeedback ? .green : .blue)
+                            Image(systemName: showCopiedFeedback ? "checkmark.circle.fill" : "doc.on.doc")
+                                .font(.system(size: 14))
+                                .foregroundColor(showCopiedFeedback ? .green : .secondary)
                         }
                         .buttonStyle(.plain)
                     }
-                    Text(coordinator.lastTranscript)
-                        .font(.caption)
-                        .lineLimit(3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(Color.gray.opacity(0.06))
+                    .cornerRadius(10)
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(Color.green.opacity(0.1))
-                .cornerRadius(6)
             }
+            .frame(minHeight: 80)
             
-            // Mode selector (quick bar)
+            // Mode selector
             Picker("", selection: Binding(
                 get: { modeManager.currentModeIndex },
                 set: { modeManager.selectMode(modeManager.modes[$0]) }
             )) {
-                ForEach(0..<modeManager.modes.count, id: \.self) { index in
+                ForEach(0..<min(modeManager.modes.count, 5), id: \.self) { index in
                     Text(modeManager.modes[index].name).tag(index)
                 }
             }
@@ -119,73 +96,58 @@ struct StatusBarView: View {
             }
             .font(.subheadline)
             
-            // Shortcut hint + Start/Stop button
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text("⌥K")
-                            .font(.system(.caption, design: .monospaced))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(4)
-                        
-                        if coordinator.isRecording {
-                            if UserDefaults.standard.bool(forKey: "waitForSilence") {
-                                Text("auto-stops on silence")
-                                    .font(.caption2)
-                                    .foregroundColor(.green)
-                            } else {
-                                Text("to stop")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        } else {
-                            Text("to start")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+            // Big start/stop button with shortcut
+            Button(action: {
+                coordinator.toggleRecording()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: coordinator.isRecording ? "stop.fill" : "mic.fill")
+                        .font(.system(size: 16))
+                    Text(coordinator.isRecording ? "Stop" : "Start")
+                        .fontWeight(.semibold)
+                    
+                    Text("⌥K")
+                        .font(.system(size: 10, design: .monospaced))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(4)
                 }
-                
-                Spacer()
-                
-                // Start/Stop Recording button
-                Button(action: {
-                    coordinator.toggleRecording()
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: coordinator.isRecording ? "stop.fill" : "mic.fill")
-                        Text(coordinator.isRecording ? "Stop" : "Start")
-                    }
-                    .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(coordinator.isRecording ? .red : .blue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
             }
+            .buttonStyle(.borderedProminent)
+            .tint(coordinator.isRecording ? .red : .blue)
             
             Divider()
             
-            // Buttons
+            // Footer buttons
             HStack {
-                Button("Settings...") {
+                Button(action: {
                     AppDelegate.shared?.openSettings()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 12))
+                        Text("Settings")
+                            .font(.caption)
+                    }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
                 
                 Spacer()
                 
                 Button("Quit") {
                     NSApp.terminate(nil)
                 }
-                .buttonStyle(.bordered)
-                .tint(.red)
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .font(.caption)
             }
         }
-        .padding()
-        .frame(width: 280)
+        .padding(14)
+        .frame(width: 300)
     }
 }
 

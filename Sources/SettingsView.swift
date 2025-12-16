@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var waitForSilence = true
     @State private var showSaveConfirmation = false
     @State private var expandedModeId: String? = nil
+    @State private var expandedToneId: String? = nil
     @State private var newToneName = ""
     @State private var newTonePrompt = ""
     @State private var newCustomModeName = ""
@@ -22,6 +23,23 @@ struct SettingsView: View {
     
     var body: some View {
         Form {
+            // App header
+            HStack {
+                Image(systemName: "waveform")
+                    .font(.system(size: 32))
+                    .foregroundColor(.blue)
+                VStack(alignment: .leading) {
+                    Text("Klip")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("v0.4")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 8)
+            
             Section("API Keys") {
                 SecureField("ElevenLabs API Key", text: $elevenLabsKey)
                     .textFieldStyle(.roundedBorder)
@@ -50,23 +68,18 @@ struct SettingsView: View {
             }
             
             Section("Modes") {
-                Text("Quick bar modes (⌘1-5):")
+                Text("Drag to reorder. First 9 get ⌘1-9 shortcuts.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                ForEach(modeManager.allModes, id: \.id) { mode in
-                    VStack(alignment: .leading, spacing: 4) {
+                List {
+                    ForEach(Array(modeManager.modes.enumerated()), id: \.element.id) { index, mode in
                         HStack {
-                            // Visibility checkbox
-                            Button(action: {
-                                modeManager.toggleModeVisibility(mode.id)
-                            }) {
-                                Image(systemName: modeManager.isModeVisible(mode.id) ? "checkmark.square.fill" : "square")
-                                    .foregroundColor(modeManager.isModeVisible(mode.id) ? .blue : .secondary)
-                            }
-                            .buttonStyle(.plain)
+                            // Drag handle
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundColor(.secondary)
                             
-                            // Mode name and position
+                            // Mode name
                             Text(mode.name)
                                 .fontWeight(.medium)
                             
@@ -74,16 +87,15 @@ struct SettingsView: View {
                             if mode.usesClipboardContext {
                                 Text("📋")
                                     .font(.caption)
-                                    .help("Uses clipboard context")
                             }
                             if mode.usesScreenshotContext {
                                 Text("📷")
                                     .font(.caption)
-                                    .help("Uses screenshot context")
                             }
                             
-                            if let position = modeManager.visibleModeIds.firstIndex(of: mode.id) {
-                                Text("⌘\(position + 1)")
+                            // Shortcut badge (first 9 only)
+                            if index < 9 {
+                                Text("⌘\(index + 1)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .padding(.horizontal, 4)
@@ -107,48 +119,15 @@ struct SettingsView: View {
                                 .frame(width: 100)
                                 .labelsHidden()
                             }
-                            
-                            // Expand to show prompt
-                            Button(action: {
-                                if expandedModeId == mode.id {
-                                    expandedModeId = nil
-                                } else {
-                                    expandedModeId = mode.id
-                                }
-                            }) {
-                                Image(systemName: expandedModeId == mode.id ? "chevron.up" : "chevron.down")
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        
-                        // Show prompt when expanded
-                        if expandedModeId == mode.id {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(mode.systemPrompt.isEmpty ? "(No prompt - passthrough)" : mode.systemPrompt)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                
-                                if mode.usesClipboardContext {
-                                    Text("📋 Uses clipboard context when enabled")
-                                        .font(.caption2)
-                                        .foregroundColor(.blue)
-                                }
-                                if mode.usesScreenshotContext {
-                                    Text("📷 Uses screenshot context when enabled")
-                                        .font(.caption2)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .padding(8)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(6)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .onMove { source, destination in
+                        modeManager.moveMode(from: source, to: destination)
+                    }
                 }
+                .frame(height: 250)
                 
-                Text("Max 5 modes. 📋 = clipboard, 📷 = screenshot")
+                Text("📋 = clipboard, 📷 = screenshot")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -210,24 +189,55 @@ struct SettingsView: View {
             Section("Custom Tones") {
                 // List existing custom tones
                 ForEach(toneManager.customTones) { tone in
-                    HStack {
-                        VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
                             Text(tone.name)
                                 .fontWeight(.medium)
-                            Text(tone.promptModifier)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
+                            
+                            Spacer()
+                            
+                            // Edit button
+                            Button(action: {
+                                if expandedToneId == tone.id {
+                                    expandedToneId = nil
+                                } else {
+                                    expandedToneId = tone.id
+                                }
+                            }) {
+                                Text(expandedToneId == tone.id ? "Done" : "Edit")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button(action: {
+                                toneManager.deleteCustomTone(id: tone.id)
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        Spacer()
-                        Button(action: {
-                            toneManager.deleteCustomTone(id: tone.id)
-                        }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
+                        
+                        // Expanded edit view
+                        if expandedToneId == tone.id {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Prompt modifier:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Text(tone.promptModifier)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .padding(8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(6)
+                            }
+                            .padding(.top, 4)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.vertical, 2)
                 }
                 
                 // Add new tone
@@ -258,39 +268,36 @@ struct SettingsView: View {
                 ForEach(modeManager.customModes, id: \.id) { mode in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            VStack(alignment: .leading) {
-                                Text(mode.name)
-                                    .fontWeight(.medium)
-                                Text(mode.description)
+                            Text(mode.name)
+                                .fontWeight(.medium)
+                            
+                            // Context indicators
+                            if mode.usesClipboardContext {
+                                Text("📋")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .opacity(0.8)
                             }
+                            if mode.usesScreenshotContext {
+                                Text("📷")
+                                    .font(.caption)
+                                    .opacity(0.8)
+                            }
+                            
                             Spacer()
                             
-                            // Context toggles
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    var updated = mode
-                                    updated.usesClipboardContext.toggle()
-                                    modeManager.updateCustomMode(updated)
-                                }) {
-                                    Text("📋")
-                                        .opacity(mode.usesClipboardContext ? 1.0 : 0.3)
+                            // Edit button
+                            Button(action: {
+                                if expandedModeId == mode.id {
+                                    expandedModeId = nil
+                                } else {
+                                    expandedModeId = mode.id
                                 }
-                                .buttonStyle(.plain)
-                                .help("Clipboard context")
-                                
-                                Button(action: {
-                                    var updated = mode
-                                    updated.usesScreenshotContext.toggle()
-                                    modeManager.updateCustomMode(updated)
-                                }) {
-                                    Text("📷")
-                                        .opacity(mode.usesScreenshotContext ? 1.0 : 0.3)
-                                }
-                                .buttonStyle(.plain)
-                                .help("Screenshot context")
+                            }) {
+                                Text(expandedModeId == mode.id ? "Done" : "Edit")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
                             }
+                            .buttonStyle(.plain)
                             
                             Button(action: {
                                 modeManager.deleteCustomMode(id: mode.id)
@@ -300,7 +307,56 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                        
+                        // Expanded edit view
+                        if expandedModeId == mode.id {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("System prompt:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Text(mode.systemPrompt)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .padding(8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(6)
+                                
+                                HStack(spacing: 16) {
+                                    Button(action: {
+                                        var updated = mode
+                                        updated.usesClipboardContext.toggle()
+                                        modeManager.updateCustomMode(updated)
+                                    }) {
+                                        HStack {
+                                            Image(systemName: mode.usesClipboardContext ? "checkmark.square.fill" : "square")
+                                            Text("Clipboard")
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(mode.usesClipboardContext ? .blue : .secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Button(action: {
+                                        var updated = mode
+                                        updated.usesScreenshotContext.toggle()
+                                        modeManager.updateCustomMode(updated)
+                                    }) {
+                                        HStack {
+                                            Image(systemName: mode.usesScreenshotContext ? "checkmark.square.fill" : "square")
+                                            Text("Screenshot")
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(mode.usesScreenshotContext ? .blue : .secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
                 
                 // Add new custom mode (always visible)
@@ -426,9 +482,25 @@ struct SettingsView: View {
                 }
                 
                 HStack {
+                    VStack(alignment: .leading) {
+                        Text("Record (Invert Silence)")
+                        Text("Uses opposite of your silence setting")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Text("⇧⌥K")
+                        .font(.system(.body, design: .monospaced))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(4)
+                }
+                
+                HStack {
                     Text("Switch Mode")
                     Spacer()
-                    Text("⌘1-5")
+                    Text("⌘1-9")
                         .font(.system(.body, design: .monospaced))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

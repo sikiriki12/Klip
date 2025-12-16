@@ -26,14 +26,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Create the popover
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 320)  // Slightly taller for new UI
+        popover.contentSize = NSSize(width: 340, height: 380)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: StatusBarView())
         
         // Register global hotkeys
         HotkeyManager.shared.registerHotkeys(
-            onRecording: { [weak self] in
-                self?.handleHotkey()
+            onRecording: { [weak self] invertSilence in
+                self?.handleHotkey(invertSilence: invertSilence)
             },
             onModeSwitch: { number in
                 ModeManager.shared.selectMode(byShortcut: number)
@@ -43,7 +43,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Observe recording state changes
         setupRecordingObserver()
         
-        print("✅ Klip v0.4 is running! Press ⌥K to record, ⌘1-5 to switch modes.")
+        print("✅ Klip v0.4 is running! Press ⌥K to record, ⇧⌥K for opposite silence mode, ⌘1-5 to switch modes.")
         print("💡 Make sure to add your API keys in Settings first.")
     }
     
@@ -116,9 +116,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("⚙️ Settings window opened")
     }
     
-    private func handleHotkey() {
-        print("⌨️ Hotkey pressed: ⌥K")
-        TranscriptionCoordinator.shared.toggleRecording()
+    private func handleHotkey(invertSilence: Bool) {
+        let shortcut = invertSilence ? "⇧⌥K" : "⌥K"
+        print("⌨️ Hotkey pressed: \(shortcut)")
+        TranscriptionCoordinator.shared.toggleRecording(invertSilence: invertSilence)
     }
     
     func applicationWillTerminate(_ notification: Notification) {
