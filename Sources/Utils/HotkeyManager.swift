@@ -34,10 +34,10 @@ class HotkeyManager {
             var hotkeyID = EventHotKeyID()
             GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotkeyID)
             
-            // ID 1 = recording (⌥K), ID 7 = recording inverted (⇧⌥K), ID 2-10 = mode 1-9
+            // ID 1 = recording (⌥K), ID 100 = recording inverted (⇧⌥K), ID 2-10 = mode 1-9
             if hotkeyID.id == 1 {
                 manager.recordingCallback?(false)  // Normal mode
-            } else if hotkeyID.id == 7 {
+            } else if hotkeyID.id == 100 {
                 manager.recordingCallback?(true)   // Inverted silence mode
             } else if hotkeyID.id >= 2 && hotkeyID.id <= 10 {
                 manager.modeCallback?(Int(hotkeyID.id) - 1)  // Convert to 1-9
@@ -52,8 +52,8 @@ class HotkeyManager {
         // Register Option+K for recording (ID: 1) - normal mode
         registerHotkey(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(optionKey), id: 1, name: "⌥K")
         
-        // Register Shift+Option+K for recording with inverted silence (ID: 7)
-        registerHotkey(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(optionKey | shiftKey), id: 7, name: "⇧⌥K")
+        // Register Shift+Option+K for recording with inverted silence (ID: 100 - avoid collision with ⌘6)
+        registerHotkey(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(optionKey | shiftKey), id: 100, name: "⇧⌥K")
         
         // Register ⌘1-9 for mode switching (ID: 2-10)
         let numberKeyCodes: [UInt32] = [

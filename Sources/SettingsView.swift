@@ -153,19 +153,33 @@ struct SettingsView: View {
                             
                             Spacer()
                             
-                            // Tone picker (hidden for Raw mode)
-                            if mode.id != "raw" {
-                                Picker("", selection: Binding(
-                                    get: { toneManager.getTone(for: mode.id, defaultToneId: mode.defaultToneId).id },
-                                    set: { toneManager.setTone(for: mode.id, toneId: $0) }
-                                )) {
-                                    ForEach(toneManager.allTones) { tone in
-                                        Text(tone.name).tag(tone.id)
-                                    }
+                            // Info button to show prompt
+                            Button(action: {
+                                if expandedModeId == mode.id {
+                                    expandedModeId = nil
+                                } else {
+                                    expandedModeId = mode.id
                                 }
-                                .frame(width: 100)
-                                .labelsHidden()
+                            }) {
+                                Image(systemName: expandedModeId == mode.id ? "info.circle.fill" : "info.circle")
+                                    .foregroundColor(expandedModeId == mode.id ? .blue : .secondary)
+                                    .font(.system(size: 14))
                             }
+                            .buttonStyle(.plain)
+                            
+                            // Tone picker (disabled for Raw mode to maintain alignment)
+                            Picker("", selection: Binding(
+                                get: { toneManager.getTone(for: mode.id, defaultToneId: mode.defaultToneId).id },
+                                set: { toneManager.setTone(for: mode.id, toneId: $0) }
+                            )) {
+                                ForEach(toneManager.allTones) { tone in
+                                    Text(tone.name).tag(tone.id)
+                                }
+                            }
+                            .frame(width: 100)
+                            .labelsHidden()
+                            .disabled(mode.id == "raw")
+                            .opacity(mode.id == "raw" ? 0.3 : 1.0)
                         }
                     }
                     .onMove { source, destination in
@@ -173,6 +187,37 @@ struct SettingsView: View {
                     }
                 }
                 .frame(height: 250)
+                
+                // Show selected mode prompt below the list
+                if let modeId = expandedModeId,
+                   let mode = modeManager.modes.first(where: { $0.id == modeId }) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("\(mode.name) Prompt")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            Spacer()
+                            Button("Close") {
+                                expandedModeId = nil
+                            }
+                            .buttonStyle(.plain)
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                        
+                        ScrollView {
+                            Text(mode.systemPrompt.isEmpty ? "(No prompt - raw passthrough)" : mode.systemPrompt)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                        }
+                        .frame(height: 120)
+                        .padding(8)
+                        .background(Color.gray.opacity(0.08))
+                        .cornerRadius(6)
+                    }
+                }
                 
                 Text("📋 = clipboard, 📷 = screenshot")
                     .font(.caption)
@@ -612,6 +657,21 @@ struct SettingsView: View {
             "Polish": "pl", "Russian": "ru", "Japanese": "ja", "Chinese": "zh", "Korean": "ko"
         ]
         return codes[language] ?? "en"
+    }
+    
+    /// Generate tooltip text for a mode
+    private func modeTooltip(for mode: any TranscriptionMode) -> String {
+        // For custom modes, show the system prompt (truncated if long)
+        if modeManager.customModes.contains(where: { $0.id == mode.id }) {
+            let prompt = mode.systemPrompt
+            if prompt.count > 200 {
+                return String(prompt.prefix(200)) + "..."
+            }
+            return prompt.isEmpty ? mode.description : prompt
+        }
+        
+        // For built-in modes, show description
+        return mode.description
     }
 }
 

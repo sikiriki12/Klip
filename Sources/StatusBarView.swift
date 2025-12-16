@@ -63,6 +63,21 @@ struct StatusBarView: View {
                     .padding(10)
                     .background(Color.gray.opacity(0.06))
                     .cornerRadius(10)
+                } else {
+                    // Empty placeholder
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("Press ⌥K or click Start to record")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary.opacity(0.3))
+                    }
+                    .padding(10)
+                    .background(Color.gray.opacity(0.06))
+                    .cornerRadius(10)
                 }
             }
             .frame(minHeight: 80)

@@ -337,13 +337,14 @@ class ModeManager: ObservableObject {
         }
         
         // Append translation instruction if enabled
-        if translateEnabled {
+        if translateEnabled && currentMode.id != "raw" {
             if !systemInstruction.isEmpty {
                 systemInstruction += "\n\n"
             }
             systemInstruction += """
-            Finally, translate the result to \(targetLanguage).
-            Provide ONLY the final \(translateEnabled && currentMode.id == "raw" ? "translation" : "processed and translated text"), no explanations.
+            TRANSLATION: After processing, translate the result to \(targetLanguage).
+            OUTPUT: Provide ONLY the final translated text. Do NOT include the original text, do NOT show both versions, do NOT add separators like *** or ---.
+            Just output the single final result in \(targetLanguage).
             """
         }
         
