@@ -182,18 +182,48 @@ class ModeManager: ObservableObject {
         var userPrompt = text
         var hasClipboardContext = false
         var hasScreenshotContext = false
+        var hasUserContext = false
+        
+        // Check if mode uses any context (clipboard or screenshot)
+        let usesAnyContext = currentMode.usesClipboardContext || currentMode.usesScreenshotContext
+        
+        // Add user identity if mode uses any context
+        if usesAnyContext, let userContext = UserProfile.shared.contextString {
+            print("👤 Including user identity context")
+            hasUserContext = true
+            userPrompt = """
+            \(userContext)
+            
+            [User's speech to process]:
+            \(text)
+            """
+        }
         
         // Add clipboard context if mode uses it and it's available
         if currentMode.usesClipboardContext, let clipboardContent = ClipboardMonitor.shared.getFreshContent() {
             print("📋 Including clipboard context (\(clipboardContent.count) chars)")
             hasClipboardContext = true
-            userPrompt = """
-            [Clipboard context - recently copied text that may be relevant]:
-            \(clipboardContent.prefix(2000))
             
-            [User's speech to process]:
-            \(text)
-            """
+            if hasUserContext {
+                // Append to existing prompt with user context
+                userPrompt = """
+                \(UserProfile.shared.contextString ?? "")
+                
+                [Clipboard context - recently copied text that may be relevant]:
+                \(clipboardContent.prefix(2000))
+                
+                [User's speech to process]:
+                \(text)
+                """
+            } else {
+                userPrompt = """
+                [Clipboard context - recently copied text that may be relevant]:
+                \(clipboardContent.prefix(2000))
+                
+                [User's speech to process]:
+                \(text)
+                """
+            }
         }
         
         // Capture screenshot if mode uses it and it's enabled

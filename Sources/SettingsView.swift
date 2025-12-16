@@ -67,6 +67,38 @@ struct SettingsView: View {
                 }
             }
             
+            Section("Your Identity") {
+                Toggle("Include in context-aware modes", isOn: Binding(
+                    get: { UserProfile.shared.isEnabled },
+                    set: { UserProfile.shared.isEnabled = $0 }
+                ))
+                
+                TextField("Name", text: Binding(
+                    get: { UserProfile.shared.name },
+                    set: { UserProfile.shared.name = $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .disabled(!UserProfile.shared.isEnabled)
+                
+                TextField("Email (optional)", text: Binding(
+                    get: { UserProfile.shared.email },
+                    set: { UserProfile.shared.email = $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .disabled(!UserProfile.shared.isEnabled)
+                
+                TextField("Company (optional)", text: Binding(
+                    get: { UserProfile.shared.company },
+                    set: { UserProfile.shared.company = $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .disabled(!UserProfile.shared.isEnabled)
+                
+                Text("Auto-detected. Used for Email, Message, and custom modes with context.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
             Section("Modes") {
                 Text("Drag to reorder. First 9 get ⌘1-9 shortcuts.")
                     .font(.caption)
