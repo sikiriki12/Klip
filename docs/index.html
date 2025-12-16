@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klip — AI Voice Transcription for macOS</title>
+    <meta name="description" content="Transform your speech into perfectly formatted text. Speak in any language, get polished output instantly. The ultimate voice assistant for macOS.">
+    <meta name="keywords" content="voice transcription, macOS, AI, speech to text, dictation, translation">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Klip — AI Voice Transcription for macOS">
+    <meta property="og:description" content="Your Voice. Any Language. Every App. Transform speech into perfectly formatted text.">
+    <meta property="og:image" content="AppIcon.jpg">
+    <meta property="og:type" content="website">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/jpeg" href="AppIcon.jpg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="AppIcon.jpg" alt="Klip" class="nav-icon">
+                <span>Klip</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#modes">Modes</a>
+                <a href="#faq">FAQ</a>
+                <a href="https://github.com/sikiriki12/Klip" target="_blank" class="nav-github">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-glow"></div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-icon">🍎</span>
+                    <span>macOS Sonoma+</span>
+                </div>
+                <h1 class="hero-title">
+                    Your Voice.<br>
+                    <span class="gradient-text">Any Language.</span><br>
+                    Every App.
+                </h1>
+                <p class="hero-subtitle">
+                    Klip transforms your speech into perfectly formatted text—no matter what language you think in or what app you're using.
+                </p>
+                <div class="hero-cta">
+                    <a href="https://github.com/sikiriki12/Klip/releases/latest/download/Klip.dmg" class="btn btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download for Mac
+                    </a>
+                    <a href="https://github.com/sikiriki12/Klip#manual-build" class="btn btn-secondary">
+                        Build from Source
+                    </a>
+                </div>
+                <div class="hero-visual">
+                    <div class="flow-demo">
+                        <div class="flow-step" data-step="1">
+                            <div class="flow-icon">🗣️</div>
+                            <div class="flow-label">Speak Spanish</div>
+                            <div class="flow-content">"Diles que llegaré el martes"</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step" data-step="2">
+                            <div class="flow-icon">📝</div>
+                            <div class="flow-label">Transcribe</div>
+                            <div class="flow-content">"Tell them I'll arrive Tuesday"</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step" data-step="3">
+                            <div class="flow-icon">✨</div>
+                            <div class="flow-label">Polish & Translate</div>
+                            <div class="flow-content">"Estimado equipo, les confirmo mi llegada el martes..."</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Magic Flow -->
+    <section id="features" class="section magic-flow">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Think in One Language. <span class="gradient-text">Output in Another.</span></h2>
+                <p class="section-subtitle">Klip doesn't just transcribe—it understands, processes, and delivers exactly what you need.</p>
+            </div>
+            <div class="pipeline">
+                <div class="pipeline-step glass-card">
+                    <div class="pipeline-number">1</div>
+                    <div class="pipeline-icon">🎙️</div>
+                    <h3>Speak</h3>
+                    <p>Talk naturally in any language. Klip captures your voice with precision.</p>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step glass-card">
+                    <div class="pipeline-number">2</div>
+                    <div class="pipeline-icon">📝</div>
+                    <h3>Transcribe</h3>
+                    <p>AI-powered transcription converts speech to text instantly.</p>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step glass-card">
+                    <div class="pipeline-number">3</div>
+                    <div class="pipeline-icon">✨</div>
+                    <h3>Process</h3>
+                    <p>Choose a mode: polish, summarize, format as email, or keep it raw.</p>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step glass-card">
+                    <div class="pipeline-number">4</div>
+                    <div class="pipeline-icon">🌍</div>
+                    <h3>Translate</h3>
+                    <p>Optional: output in any of 15+ supported languages.</p>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step glass-card">
+                    <div class="pipeline-number">5</div>
+                    <div class="pipeline-icon">📋</div>
+                    <h3>Paste</h3>
+                    <p>Perfectly formatted text is ready in your clipboard. Done!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Context-Aware Intelligence -->
+    <section class="section context-aware">
+        <div class="container">
+            <div class="context-grid">
+                <div class="context-content">
+                    <span class="feature-badge">Context-Aware AI</span>
+                    <h2 class="section-title">Reply to Emails in <span class="gradient-text">Seconds</span></h2>
+                    <p class="section-subtitle">Got an email in Spanish but think better in English? Klip reads your clipboard and screen to understand the full context.</p>
+                    <div class="context-demo">
+                        <div class="demo-step">
+                            <div class="demo-number">1</div>
+                            <div class="demo-text">
+                                <strong>Copy the email</strong>
+                                <span>Klip reads your clipboard automatically</span>
+                            </div>
+                        </div>
+                        <div class="demo-step">
+                            <div class="demo-number">2</div>
+                            <div class="demo-text">
+                                <strong>Press ⌥K and speak</strong>
+                                <span>"Tell them I'll be there Tuesday"</span>
+                            </div>
+                        </div>
+                        <div class="demo-step">
+                            <div class="demo-number">3</div>
+                            <div class="demo-text">
+                                <strong>Get your reply</strong>
+                                <span>A perfectly formatted Spanish email, ready to send</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="context-visual">
+                    <div class="email-mockup glass-card">
+                        <div class="email-header">
+                            <div class="email-dot red"></div>
+                            <div class="email-dot yellow"></div>
+                            <div class="email-dot green"></div>
+                        </div>
+                        <div class="email-content">
+                            <div class="email-from">De: cliente@empresa.es</div>
+                            <div class="email-subject">Re: Reunión del proyecto</div>
+                            <div class="email-body">
+                                <p class="email-incoming">Hola, ¿cuándo podrías venir a la oficina para discutir los próximos pasos del proyecto?</p>
+                                <div class="email-divider"></div>
+                                <p class="email-reply">Estimado cliente,</p>
+                                <p class="email-reply">Gracias por su mensaje. Le confirmo que estaré disponible para reunirme con usted el martes. ¿Le parece bien a las 10:00 de la mañana?</p>
+                                <p class="email-reply">Saludos cordiales</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8 Modes -->
+    <section id="modes" class="section modes">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">8 Powerful Modes. <span class="gradient-text">One Hotkey.</span></h2>
+                <p class="section-subtitle">Switch instantly with ⌘1-9. Each mode is optimized for a specific task.</p>
+            </div>
+            <div class="modes-grid">
+                <div class="mode-card glass-card">
+                    <div class="mode-icon">📄</div>
+                    <h3>Raw</h3>
+                    <p>Pure transcription with no AI processing. Just your words.</p>
+                </div>
+                <div class="mode-card glass-card">
+                    <div class="mode-icon">✨</div>
+                    <h3>Polish</h3>
+                    <p>Clean up speech into natural, well-written prose.</p>
+                </div>
+                <div class="mode-card glass-card">
+                    <div class="mode-icon">🔧</div>
+                    <h3>Fix</h3>
+                    <p>Grammar and spelling corrections only. Your voice, refined.</p>
+                </div>
+                <div class="mode-card glass-card">
+                    <div class="mode-icon">📋</div>
+                    <h3>Summary</h3>
+                    <p>Condense your thoughts into key bullet points.</p>
+                </div>
+                <div class="mode-card glass-card featured">
+                    <div class="mode-badge">📋📷</div>
+                    <div class="mode-icon">📧</div>
+                    <h3>Email</h3>
+                    <p>Draft professional emails with context from your clipboard.</p>
+                </div>
+                <div class="mode-card glass-card featured">
+                    <div class="mode-badge">📋📷</div>
+                    <div class="mode-icon">💬</div>
+                    <h3>Message</h3>
+                    <p>Casual replies for Slack, Discord, or SMS.</p>
+                </div>
+                <div class="mode-card glass-card">
+                    <div class="mode-icon">🐦</div>
+                    <h3>Tweet</h3>
+                    <p>Engaging tweets, always under 280 characters.</p>
+                </div>
+                <div class="mode-card glass-card">
+                    <div class="mode-icon">📦</div>
+                    <h3>Commit</h3>
+                    <p>Git commit messages in conventional format.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Coming Soon: Hooks -->
+    <section class="section hooks">
+        <div class="container">
+            <div class="hooks-card glass-card">
+                <div class="hooks-badge">Coming Soon</div>
+                <div class="hooks-content">
+                    <h2 class="section-title">Hooks: <span class="gradient-text">Your Voice → Complete Automation</span></h2>
+                    <p class="section-subtitle">Chain actions after processing. Turn your voice into a complete automation pipeline.</p>
+                    <div class="hooks-examples">
+                        <div class="hook-example">
+                            <span class="hook-icon">📝</span>
+                            <span>Auto-paste and send</span>
+                        </div>
+                        <div class="hook-example">
+                            <span class="hook-icon">📒</span>
+                            <span>Save to Notes</span>
+                        </div>
+                        <div class="hook-example">
+                            <span class="hook-icon">🔗</span>
+                            <span>Push to Notion</span>
+                        </div>
+                        <div class="hook-example">
+                            <span class="hook-icon">⚡</span>
+                            <span>Chain multiple hooks</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Translation -->
+    <section class="section translation">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">15+ Languages. <span class="gradient-text">Seamless Translation.</span></h2>
+                <p class="section-subtitle">Speak in your native tongue. Output in any language you need.</p>
+            </div>
+            <div class="languages-grid">
+                <div class="language-pill">🇺🇸 English</div>
+                <div class="language-pill">🇪🇸 Spanish</div>
+                <div class="language-pill">🇩🇪 German</div>
+                <div class="language-pill">🇫🇷 French</div>
+                <div class="language-pill">🇮🇹 Italian</div>
+                <div class="language-pill">🇵🇹 Portuguese</div>
+                <div class="language-pill">🇳🇱 Dutch</div>
+                <div class="language-pill">🇵🇱 Polish</div>
+                <div class="language-pill">🇷🇺 Russian</div>
+                <div class="language-pill">🇯🇵 Japanese</div>
+                <div class="language-pill">🇨🇳 Chinese</div>
+                <div class="language-pill">🇰🇷 Korean</div>
+                <div class="language-pill">🇭🇷 Croatian</div>
+                <div class="language-pill">+ Auto-detect</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Simple as <span class="gradient-text">1-2-3</span></h2>
+            </div>
+            <div class="steps-container">
+                <div class="step-card glass-card">
+                    <div class="step-number">1</div>
+                    <div class="step-key">⌥K</div>
+                    <h3>Press the Hotkey</h3>
+                    <p>Start recording instantly from any app</p>
+                </div>
+                <div class="step-card glass-card">
+                    <div class="step-number">2</div>
+                    <div class="step-key">🎙️</div>
+                    <h3>Speak Naturally</h3>
+                    <p>Talk in any language, at your natural pace</p>
+                </div>
+                <div class="step-card glass-card">
+                    <div class="step-number">3</div>
+                    <div class="step-key">⌘V</div>
+                    <h3>Paste Anywhere</h3>
+                    <p>Polished text is ready in your clipboard</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Loved by <span class="gradient-text">Mac Users</span></h2>
+            </div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card glass-card">
+                    <div class="testimonial-content">
+                        <p>"Klip replaced my dictation app completely. The context-aware modes are game-changing."</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">👨‍💻</div>
+                        <div class="author-info">
+                            <strong>Alex M.</strong>
+                            <span>Software Developer</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card glass-card">
+                    <div class="testimonial-content">
+                        <p>"The email mode is magic—I speak one sentence and get a perfectly formatted reply. Saves me 30 minutes daily."</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">👩‍💼</div>
+                        <div class="author-info">
+                            <strong>Sarah L.</strong>
+                            <span>Marketing Manager</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card glass-card">
+                    <div class="testimonial-content">
+                        <p>"Finally, a voice tool that understands context. I reply to Spanish clients by speaking English. It just works."</p>
+                    </div>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">👨‍🎨</div>
+                        <div class="author-info">
+                            <strong>Marco T.</strong>
+                            <span>Freelance Designer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section faq">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Frequently Asked <span class="gradient-text">Questions</span></h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item glass-card">
+                    <button class="faq-question">
+                        <span>Is Klip free?</span>
+                        <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! Klip is open source and free to use. You'll need your own API keys for ElevenLabs (transcription) and Google Gemini (AI processing), which have generous free tiers.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card">
+                    <button class="faq-question">
+                        <span>What APIs do I need?</span>
+                        <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>You need two API keys: one from <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a> for voice transcription, and one from <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a> for Gemini AI processing. Both offer free tiers.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card">
+                    <button class="faq-question">
+                        <span>Does it work offline?</span>
+                        <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Klip requires an internet connection for transcription and AI processing. Your speech is processed through your own API keys, giving you control over the data flow.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card">
+                    <button class="faq-question">
+                        <span>Is my data private?</span>
+                        <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! All processing uses your own API keys. Your data goes directly to ElevenLabs and Google—Klip never stores or transmits your audio or text through any third-party servers.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card">
+                    <button class="faq-question">
+                        <span>What macOS version is required?</span>
+                        <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Klip requires macOS 13.0 (Ventura) or later. It uses SwiftUI for a native, beautiful interface that feels right at home on your Mac.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="section final-cta">
+        <div class="container">
+            <div class="cta-card glass-card">
+                <img src="AppIcon.jpg" alt="Klip" class="cta-icon">
+                <h2 class="section-title">Ready to Transform <span class="gradient-text">Your Voice?</span></h2>
+                <p class="section-subtitle">Download Klip and start speaking your way to better text.</p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/sikiriki12/Klip/releases/latest/download/Klip.dmg" class="btn btn-primary btn-large">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download for Mac
+                    </a>
+                    <a href="https://github.com/sikiriki12/Klip" class="btn btn-secondary" target="_blank">
+                        View on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="AppIcon.jpg" alt="Klip" class="footer-icon">
+                    <span>Klip</span>
+                </div>
+                <p class="footer-tagline">Made with ❤️ for the Mac</p>
+                <div class="footer-links">
+                    <a href="https://github.com/sikiriki12/Klip" target="_blank">GitHub</a>
+                    <a href="https://github.com/sikiriki12/Klip/releases" target="_blank">Releases</a>
+                    <a href="https://github.com/sikiriki12/Klip/blob/main/LICENSE" target="_blank">MIT License</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
