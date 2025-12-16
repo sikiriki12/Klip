@@ -1094,39 +1094,87 @@ button {
         padding: var(--space-3xl) 0;
     }
 }
+
 /* ===================================
-   Related Project
+   More Projects
    =================================== */
 
-.related-project {
-    padding-top: 0;
-    padding-bottom: var(--space-4xl);
+.more-projects {
+    padding-bottom: var(--space-3xl);
 }
 
-.related-card {
+.section-eyebrow {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-sm);
+}
+
+.project-card {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--space-lg) var(--space-2xl);
-    background: rgba(255, 255, 255, 0.02);
-    gap: var(--space-lg);
+    gap: var(--space-xl);
+    padding: var(--space-xl) var(--space-2xl);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    cursor: pointer;
+    max-width: 700px;
+    margin: 0 auto;
 }
 
-.related-content h3 {
-    font-size: var(--font-size-lg);
-    margin-bottom: var(--space-xs);
+.project-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-start);
+    box-shadow: 0 8px 40px var(--accent-glow);
 }
 
-.related-content p {
+.project-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+.project-info {
+    flex: 1;
+}
+
+.project-info h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+    color: var(--text-primary);
+}
+
+.project-info p {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
+    line-height: 1.6;
     margin: 0;
 }
 
+.project-arrow {
+    color: var(--text-muted);
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+}
+
+.project-card:hover .project-arrow {
+    color: var(--accent-start);
+    transform: translateX(4px);
+}
+
 @media (max-width: 640px) {
-    .related-card {
+    .project-card {
         flex-direction: column;
         text-align: center;
-        gap: var(--space-md);
+        padding: var(--space-xl);
+    }
+
+    .project-arrow {
+        transform: rotate(90deg);
+    }
+
+    .project-card:hover .project-arrow {
+        transform: rotate(90deg) translateX(4px);
     }
 }
