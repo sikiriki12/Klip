@@ -6,6 +6,7 @@ struct EmailMode: TranscriptionMode {
     let name = "Email"
     let description = "Format as professional email"
     let shortcutNumber = 4
+    let defaultToneId = "professional"  // Email defaults to professional
     let usesClipboardContext = true
     let usesScreenshotContext = true
     

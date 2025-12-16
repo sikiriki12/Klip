@@ -17,6 +17,9 @@ protocol TranscriptionMode {
     /// System prompt for Gemini (used when this mode is active)
     var systemPrompt: String { get }
     
+    /// Default tone for this mode
+    var defaultToneId: String { get }
+    
     /// Whether this mode uses clipboard context (when available)
     var usesClipboardContext: Bool { get }
     
@@ -24,8 +27,9 @@ protocol TranscriptionMode {
     var usesScreenshotContext: Bool { get }
 }
 
-// Default implementation - most modes don't use context
+// Default implementation
 extension TranscriptionMode {
+    var defaultToneId: String { "normal" }
     var usesClipboardContext: Bool { false }
     var usesScreenshotContext: Bool { false }
 }

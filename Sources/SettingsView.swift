@@ -8,7 +8,15 @@ struct SettingsView: View {
     @State private var waitForSilence = true
     @State private var showSaveConfirmation = false
     @State private var expandedModeId: String? = nil
+    @State private var newToneName = ""
+    @State private var newTonePrompt = ""
+    @State private var newCustomModeName = ""
+
+    @State private var newCustomModePrompt = ""
+    @State private var newCustomModeClipboard = false
+    @State private var newCustomModeScreenshot = false
     @ObservedObject private var modeManager = ModeManager.shared
+    @ObservedObject private var toneManager = ToneManager.shared
     
     let languages = ["Auto-detect", "Croatian", "English", "German", "Spanish", "French", "Italian", "Portuguese", "Dutch", "Polish", "Russian", "Japanese", "Chinese", "Korean"]
     
@@ -85,6 +93,20 @@ struct SettingsView: View {
                             }
                             
                             Spacer()
+                            
+                            // Tone picker (hidden for Raw mode)
+                            if mode.id != "raw" {
+                                Picker("", selection: Binding(
+                                    get: { toneManager.getTone(for: mode.id, defaultToneId: mode.defaultToneId).id },
+                                    set: { toneManager.setTone(for: mode.id, toneId: $0) }
+                                )) {
+                                    ForEach(toneManager.allTones) { tone in
+                                        Text(tone.name).tag(tone.id)
+                                    }
+                                }
+                                .frame(width: 100)
+                                .labelsHidden()
+                            }
                             
                             // Expand to show prompt
                             Button(action: {
@@ -185,6 +207,159 @@ struct SettingsView: View {
                 }
             }
             
+            Section("Custom Tones") {
+                // List existing custom tones
+                ForEach(toneManager.customTones) { tone in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(tone.name)
+                                .fontWeight(.medium)
+                            Text(tone.promptModifier)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        Button(action: {
+                            toneManager.deleteCustomTone(id: tone.id)
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                
+                // Add new tone
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Tone name (e.g., Friendly)", text: $newToneName)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("Prompt modifier (e.g., Use warm, friendly language)", text: $newTonePrompt)
+                        .textFieldStyle(.roundedBorder)
+                    Button(action: {
+                        if !newToneName.isEmpty && !newTonePrompt.isEmpty {
+                            toneManager.addCustomTone(name: newToneName, promptModifier: newTonePrompt)
+                            newToneName = ""
+                            newTonePrompt = ""
+                        }
+                    }) {
+                        Label("Add Tone", systemImage: "plus.circle")
+                    }
+                    .disabled(newToneName.isEmpty || newTonePrompt.isEmpty)
+                }
+                
+                Text("Custom tones appear in mode tone picker")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Section("Custom Modes") {
+                // List existing custom modes
+                ForEach(modeManager.customModes, id: \.id) { mode in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(mode.name)
+                                    .fontWeight(.medium)
+                                Text(mode.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            
+                            // Context toggles
+                            HStack(spacing: 8) {
+                                Button(action: {
+                                    var updated = mode
+                                    updated.usesClipboardContext.toggle()
+                                    modeManager.updateCustomMode(updated)
+                                }) {
+                                    Text("📋")
+                                        .opacity(mode.usesClipboardContext ? 1.0 : 0.3)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Clipboard context")
+                                
+                                Button(action: {
+                                    var updated = mode
+                                    updated.usesScreenshotContext.toggle()
+                                    modeManager.updateCustomMode(updated)
+                                }) {
+                                    Text("📷")
+                                        .opacity(mode.usesScreenshotContext ? 1.0 : 0.3)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Screenshot context")
+                            }
+                            
+                            Button(action: {
+                                modeManager.deleteCustomMode(id: mode.id)
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                
+                // Add new custom mode (always visible)
+                Divider()
+                
+                Text("Add New Mode")
+                    .font(.headline)
+                    .padding(.top, 8)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Mode name", text: $newCustomModeName)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    Text("System prompt:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    TextEditor(text: $newCustomModePrompt)
+                        .font(.body)
+                        .frame(minHeight: 100, maxHeight: 150)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+                    
+                    HStack {
+                        Toggle("📋 Clipboard", isOn: $newCustomModeClipboard)
+                        Toggle("📷 Screenshot", isOn: $newCustomModeScreenshot)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            if !newCustomModeName.isEmpty && !newCustomModePrompt.isEmpty {
+                                modeManager.addCustomMode(
+                                    name: newCustomModeName,
+                                    description: newCustomModeName,
+                                    systemPrompt: newCustomModePrompt,
+                                    usesClipboard: newCustomModeClipboard,
+                                    usesScreenshot: newCustomModeScreenshot
+                                )
+                                newCustomModeName = ""
+
+                                newCustomModePrompt = ""
+                                newCustomModeClipboard = false
+                                newCustomModeScreenshot = false
+                            }
+                        }) {
+                            Label("Create Mode", systemImage: "plus.circle")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(newCustomModeName.isEmpty || newCustomModePrompt.isEmpty)
+                    }
+                }
+                
+                Text("Custom modes appear in the modes list above")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
             Section("Transcription") {
                 Picker("Input Language", selection: $selectedLanguage) {
                     ForEach(languages, id: \.self) { lang in
@@ -263,7 +438,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 720)
+        .frame(width: 480, height: 850)
         .onAppear {
             loadSettings()
         }

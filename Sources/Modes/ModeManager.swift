@@ -5,14 +5,24 @@ import Combine
 class ModeManager: ObservableObject {
     static let shared = ModeManager()
     
-    /// All available modes (master list)
-    let allModes: [any TranscriptionMode] = [
+    /// Built-in modes (constant)
+    private let builtInModes: [any TranscriptionMode] = [
         RawMode(),
         FixMode(),
-        BulletMode(),
+        PolishMode(),
         EmailMode(),
-        SummarizeMode()
+        IMMode(),
+        SummarizeMode(),
+        TweetMode()
     ]
+    
+    /// Custom modes (user-defined)
+    @Published var customModes: [CustomMode] = []
+    
+    /// All available modes (built-in + custom)
+    var allModes: [any TranscriptionMode] {
+        builtInModes + customModes
+    }
     
     /// IDs of modes visible in quick bar (ordered), max 5
     @Published var visibleModeIds: [String] {
@@ -52,21 +62,80 @@ class ModeManager: ObservableObject {
         UserDefaults.standard.string(forKey: "targetLanguage") ?? "English"
     }
     
+    private let customModesKey = "customModes"
+    
     private init() {
+        // Load custom modes
+        var loadedCustomModes: [CustomMode] = []
+        var needsSaveCustomModes = false
+        
+        if let data = UserDefaults.standard.data(forKey: customModesKey),
+           let modes = try? JSONDecoder().decode([CustomMode].self, from: data) {
+            loadedCustomModes = modes
+        } else {
+            // First run - add Commit mode as example
+            loadedCustomModes = [CustomMode.commitMode]
+            needsSaveCustomModes = true
+        }
+        customModes = loadedCustomModes
+        
         // Load visible mode IDs or use defaults
         if let savedIds = UserDefaults.standard.array(forKey: "visibleModeIds") as? [String] {
             visibleModeIds = savedIds
         } else {
-            visibleModeIds = ["raw", "fix", "bullet", "email", "summarize"]
+            visibleModeIds = ["raw", "fix", "polish", "email", "im"]
         }
         
         // Load saved mode or default to first visible
         let savedModeId = UserDefaults.standard.string(forKey: "currentModeId") ?? "raw"
-        currentMode = allModes.first { $0.id == savedModeId } ?? allModes[0]
+        currentMode = builtInModes.first { $0.id == savedModeId } ?? builtInModes[0]
         
         // Load translation toggle state
         translateEnabled = UserDefaults.standard.bool(forKey: "translateEnabled")
+        
+        // Save custom modes if needed (after all properties initialized)
+        if needsSaveCustomModes {
+            saveCustomModes()
+        }
     }
+    
+    // MARK: - Custom Mode CRUD
+    
+    private func saveCustomModes() {
+        if let data = try? JSONEncoder().encode(customModes) {
+            UserDefaults.standard.set(data, forKey: customModesKey)
+        }
+    }
+    
+    func addCustomMode(name: String, description: String, systemPrompt: String, usesClipboard: Bool, usesScreenshot: Bool) {
+        let mode = CustomMode(
+            name: name,
+            description: description,
+            systemPrompt: systemPrompt,
+            usesClipboardContext: usesClipboard,
+            usesScreenshotContext: usesScreenshot
+        )
+        customModes.append(mode)
+        saveCustomModes()
+        objectWillChange.send()
+    }
+    
+    func deleteCustomMode(id: String) {
+        customModes.removeAll { $0.id == id }
+        visibleModeIds.removeAll { $0 == id }
+        saveCustomModes()
+        objectWillChange.send()
+    }
+    
+    func updateCustomMode(_ mode: CustomMode) {
+        if let index = customModes.firstIndex(where: { $0.id == mode.id }) {
+            customModes[index] = mode
+            saveCustomModes()
+            objectWillChange.send()
+        }
+    }
+    
+    // MARK: - Mode Selection
     
     /// Select a mode by shortcut number (1-5)
     func selectMode(byShortcut number: Int) {
@@ -227,6 +296,13 @@ class ModeManager: ObservableObject {
                 Use it to understand their request, but do NOT process/translate the context itself.
                 If the context is not relevant, ignore it.
                 """
+            }
+            
+            // Apply tone modifier
+            let tone = ToneManager.shared.getTone(for: currentMode.id, defaultToneId: currentMode.defaultToneId)
+            if !tone.promptModifier.isEmpty {
+                systemInstruction += "\n\nTONE: \(tone.promptModifier)"
+                print("🎭 Tone: \(tone.name)")
             }
             
             print("🔄 Processing with mode: \(currentMode.name)")
