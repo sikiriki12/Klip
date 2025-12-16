@@ -1094,3 +1094,39 @@ button {
         padding: var(--space-3xl) 0;
     }
 }
+/* ===================================
+   Related Project
+   =================================== */
+
+.related-project {
+    padding-top: 0;
+    padding-bottom: var(--space-4xl);
+}
+
+.related-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg) var(--space-2xl);
+    background: rgba(255, 255, 255, 0.02);
+    gap: var(--space-lg);
+}
+
+.related-content h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-xs);
+}
+
+.related-content p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .related-card {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--space-md);
+    }
+}
