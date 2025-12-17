@@ -148,15 +148,57 @@ class TranscriptionCoordinator: ObservableObject {
                     }
                     
                     await MainActor.run {
-                        self.lastTranscript = processedText
                         self.isRecording = false
                         self.errorMessage = nil
                         
-                        // Copy to clipboard
-                        if !processedText.isEmpty {
-                            ClipboardManager.shared.copyToClipboard(processedText)
+                        // Parse email fields if present (for Email mode)
+                        var emailSubject: String? = nil
+                        var emailBody = processedText
+                        var composeBodyFocused = false
+                        
+                        if ModeManager.shared.currentMode.id == "email" {
+                            var lines = processedText.components(separatedBy: "\n")
+                            
+                            // Check for COMPOSE_BODY_FOCUSED line
+                            if let firstLine = lines.first, firstLine.hasPrefix("COMPOSE_BODY_FOCUSED:") {
+                                let value = String(firstLine.dropFirst("COMPOSE_BODY_FOCUSED:".count)).trimmingCharacters(in: .whitespaces).uppercased()
+                                composeBodyFocused = value == "YES"
+                                lines = Array(lines.dropFirst())
+                                print("📧 Compose body focused: \(composeBodyFocused)")
+                            }
+                            
+                            // Skip blank lines
+                            lines = lines.drop(while: { $0.trimmingCharacters(in: .whitespaces).isEmpty }).map { $0 }
+                            
+                            // Check for SUBJECT line
+                            if let firstLine = lines.first, firstLine.hasPrefix("SUBJECT:") {
+                                emailSubject = String(firstLine.dropFirst("SUBJECT:".count)).trimmingCharacters(in: .whitespaces)
+                                lines = Array(lines.dropFirst())
+                                print("📧 Parsed subject: \(emailSubject ?? "none")")
+                            }
+                            
+                            // Rest is body (skip leading blank lines)
+                            emailBody = lines.drop(while: { $0.trimmingCharacters(in: .whitespaces).isEmpty })
+                                .joined(separator: "\n")
+                        }
+                        
+                        self.lastTranscript = emailBody
+                        
+                        // Copy body to clipboard (not subject)
+                        if !emailBody.isEmpty {
+                            ClipboardManager.shared.copyToClipboard(emailBody)
                             SoundPlayer.shared.playCompletionSound()
                             print("✅ Done!")
+                            
+                            // Execute any applicable hooks (e.g., Gmail auto-paste)
+                            Task {
+                                await HookManager.shared.executeHooks(
+                                    text: emailBody,
+                                    modeId: ModeManager.shared.currentMode.id,
+                                    emailSubject: emailSubject,
+                                    composeBodyFocused: composeBodyFocused
+                                )
+                            }
                         }
                         
                         // Disconnect

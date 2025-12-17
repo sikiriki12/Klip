@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var newCustomModePrompt = ""
     @State private var newCustomModeClipboard = false
     @State private var newCustomModeScreenshot = false
+    @State private var gmailHookEnabled = UserDefaults.standard.bool(forKey: "gmailHookEnabled")
     @ObservedObject private var modeManager = ModeManager.shared
     @ObservedObject private var toneManager = ToneManager.shared
     
@@ -138,6 +139,13 @@ struct SettingsView: View {
                             if mode.usesScreenshotContext {
                                 Text("📷")
                                     .font(.caption)
+                            }
+                            
+                            // Gmail hook indicator (only for Email mode when hook is enabled)
+                            if mode.id == "email" && gmailHookEnabled {
+                                Image(systemName: "envelope.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
                             }
                             
                             // Shortcut badge (first 9 only)
@@ -275,6 +283,50 @@ struct SettingsView: View {
                         .foregroundColor(.orange)
                     }
                     .buttonStyle(.plain)
+                }
+            }
+            
+            Section("Hooks") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Gmail Auto-Paste (Email mode)", isOn: $gmailHookEnabled)
+                        .onChange(of: gmailHookEnabled) { newValue in
+                            UserDefaults.standard.set(newValue, forKey: "gmailHookEnabled")
+                        }
+                    
+                    Text("When using Email mode on Gmail, auto-opens reply and pastes text")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Requires Gmail keyboard shortcuts")
+                            .fontWeight(.medium)
+                    }
+                    .font(.caption)
+                    
+                    Text("Go to Gmail Settings → General → Keyboard shortcuts → On")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Button(action: {
+                        if let url = URL(string: "https://mail.google.com/mail/u/0/#settings/general") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Text("Open Gmail Settings")
+                            Image(systemName: "arrow.up.forward.square")
+                                .font(.caption2)
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.blue)
                 }
             }
             
@@ -617,6 +669,13 @@ struct SettingsView: View {
         }
         
         selectedLanguage = UserDefaults.standard.string(forKey: "inputLanguage") ?? "Auto-detect"
+        // Apply saved language to coordinator on startup
+        if selectedLanguage == "Auto-detect" {
+            TranscriptionCoordinator.shared.languageCode = nil
+        } else {
+            TranscriptionCoordinator.shared.languageCode = languageToCode(selectedLanguage)
+        }
+        
         targetLanguage = UserDefaults.standard.string(forKey: "targetLanguage") ?? "English"
         waitForSilence = UserDefaults.standard.bool(forKey: "waitForSilence")
     }
