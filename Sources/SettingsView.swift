@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var newCustomModeClipboard = false
     @State private var newCustomModeScreenshot = false
     @State private var gmailHookEnabled = UserDefaults.standard.bool(forKey: "gmailHookEnabled")
+    @State private var pasteHookEnabled = UserDefaults.standard.bool(forKey: "pasteHookEnabled")
     @ObservedObject private var modeManager = ModeManager.shared
     @ObservedObject private var toneManager = ToneManager.shared
     
@@ -286,7 +287,7 @@ struct SettingsView: View {
                 }
             }
             
-            Section("Hooks") {
+        Section("Hooks") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Gmail Auto-Paste (Email mode)", isOn: $gmailHookEnabled)
                         .onChange(of: gmailHookEnabled) { newValue in
@@ -294,6 +295,17 @@ struct SettingsView: View {
                         }
                     
                     Text("When using Email mode on Gmail, auto-opens reply and pastes text")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Auto-Paste (All modes)", isOn: $pasteHookEnabled)
+                        .onChange(of: pasteHookEnabled) { newValue in
+                            UserDefaults.standard.set(newValue, forKey: "pasteHookEnabled")
+                        }
+                    
+                    Text("Automatically paste processed text (skipped if Gmail hook handles)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

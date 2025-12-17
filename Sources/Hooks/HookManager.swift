@@ -9,8 +9,9 @@ class HookManager: ObservableObject {
     private var hooks: [any Hook] = []
     
     private init() {
-        // Register all available hooks
+        // Register all available hooks (order matters for priority)
         registerHook(GmailHook())
+        registerHook(PasteHook())
     }
     
     /// Register a new hook
