@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build script for Klip.app
-# Creates a distributable macOS app bundle
+# Creates a distributable macOS app bundle and DMG
 
 set -e
 
@@ -49,10 +49,31 @@ echo "🔐 Signing app..."
 codesign --force --deep --sign - "$APP_DIR"
 
 echo "✅ Built successfully: $APP_DIR"
+
+# Create DMG with Applications symlink for drag-to-install
 echo ""
-echo "To install:"
-echo "  1. Drag $APP_DIR to /Applications"
-echo "  2. Right-click → Open (first time only, to bypass Gatekeeper)"
+echo "📀 Creating DMG..."
+
+DMG_STAGING="dmg_staging"
+rm -rf "$DMG_STAGING"
+mkdir -p "$DMG_STAGING"
+
+# Copy app to staging
+cp -R "$APP_DIR" "$DMG_STAGING/"
+
+# Create symlink to Applications folder
+ln -s /Applications "$DMG_STAGING/Applications"
+
+# Create the DMG
+rm -f Klip.dmg
+hdiutil create -volname "Klip" -srcfolder "$DMG_STAGING" -ov -format UDZO Klip.dmg
+
+# Clean up staging
+rm -rf "$DMG_STAGING"
+
+echo "✅ Created: Klip.dmg"
 echo ""
-echo "To create a DMG for distribution:"
-echo "  hdiutil create -volname Klip -srcfolder $APP_DIR -ov -format UDZO Klip.dmg"
+echo "To install from DMG:"
+echo "  1. Open Klip.dmg"
+echo "  2. Drag Klip.app to the Applications folder"
+echo "  3. Right-click → Open (first time only, to bypass Gatekeeper)"
