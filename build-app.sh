@@ -44,6 +44,10 @@ if [ -d "Resources/Sounds" ]; then
     cp -r Resources/Sounds "$RESOURCES_DIR/"
 fi
 
+# Sign the app with ad-hoc signature to prevent "app is damaged" errors
+echo "🔐 Signing app..."
+codesign --force --deep --sign - "$APP_DIR"
+
 echo "✅ Built successfully: $APP_DIR"
 echo ""
 echo "To install:"
